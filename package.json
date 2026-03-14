@@ -1,0 +1,19 @@
+{
+  "name": "EnvIcon",
+  "version": "1.0.0",
+  "description": "Customize favicons for development, staging, and production environments.",
+  "scripts": {
+    "build": "rimraf ./EnvIcon/js && rimraf EnvIcon.zip && webpack && (cd EnvIcon && zip -r ../EnvIcon.zip .)"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@types/chrome": "^0.1.37",
+    "rimraf": "^6.1.3",
+    "ts-loader": "^9.5.4",
+    "typescript": "^5.9.3",
+    "webpack": "^5.105.4",
+    "webpack-cli": "^7.0.0"
+  }
+}

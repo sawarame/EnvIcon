@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "EnvIcon",
+  "version": "1.0",
+  "description": "Customize favicons for development, staging, and production environments.",
+  "action": {},
+  "background": {
+    "service_worker": "js/background.js"
+  },
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "js/content.js"
+      ]
+    }
+  ],
+  "icons": {
+    "16": "images/icon16.png",
+    "32": "images/icon32.png",
+    "48": "images/icon48.png",
+    "128": "images/icon128.png"
+  }
+}
