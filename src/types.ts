@@ -1,6 +1,6 @@
 export interface SyncData {
   faviconEnabled?: boolean;
-  prodHostname?: string;
-  stgHostname?: string;
-  devHostname?: string;
+  prodHostnames?: string[];
+  stgHostnames?: string[];
+  devHostnames?: string[];
 }

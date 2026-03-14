@@ -1,6 +1,6 @@
-let _prodHostname: string | undefined;
-let _stgHostname: string | undefined;
-let _devHostname: string | undefined;
+let _prodHostnames: string[] = [];
+let _stgHostnames: string[] = [];
+let _devHostnames: string[] = [];
 
 const getFavicon = (): HTMLLinkElement | null => {
   return (
@@ -31,13 +31,15 @@ const updateFavicon = () => {
     ctx.drawImage(img, 0, 0, size, size);
 
     let text: string, color: string;
-    if (_prodHostname && window.location.hostname === _prodHostname) {
+    const currentHostname = window.location.hostname;
+
+    if (_prodHostnames.includes(currentHostname)) {
       text = "prod";
       color = "#FF0000"; // Red
-    } else if (_stgHostname && window.location.hostname === _stgHostname) {
+    } else if (_stgHostnames.includes(currentHostname)) {
       text = "stg";
       color = "#0000FF"; // Blue
-    } else if (_devHostname && window.location.hostname === _devHostname) {
+    } else if (_devHostnames.includes(currentHostname)) {
       text = "dev";
       color = "#008000"; // Green
     } else {
@@ -99,13 +101,13 @@ const observer = new MutationObserver((mutationsList: MutationRecord[]) => {
 });
 
 export const initializeFaviconChangerFeature = (
-  prodHostname?: string,
-  stgHostname?: string,
-  devHostname?: string
+  prodHostnames: string[] = [],
+  stgHostnames: string[] = [],
+  devHostnames: string[] = []
 ) => {
-  _prodHostname = prodHostname;
-  _stgHostname = stgHostname;
-  _devHostname = devHostname;
+  _prodHostnames = prodHostnames;
+  _stgHostnames = stgHostnames;
+  _devHostnames = devHostnames;
 
   // Handle cases where the favicon already exists at script injection time
   if (getFavicon()) {
