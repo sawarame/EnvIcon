@@ -15,6 +15,14 @@ const addDevHostnameBtn = document.getElementById("addDevHostname") as HTMLButto
 const saveButton = document.getElementById("save") as HTMLButtonElement;
 const statusSpan = document.getElementById("status") as HTMLSpanElement;
 
+const updateRemoveButtons = (container: HTMLDivElement) => {
+  const removeButtons = container.querySelectorAll(".btn-outline-danger") as NodeListOf<HTMLButtonElement>;
+  const isDisabled = removeButtons.length <= 1;
+  removeButtons.forEach(btn => {
+    btn.disabled = isDisabled;
+  });
+};
+
 const createHostnameInput = (value: string = "") => {
   const div = document.createElement("div");
   div.className = "input-group mb-2";
@@ -29,7 +37,13 @@ const createHostnameInput = (value: string = "") => {
   removeBtn.className = "btn btn-outline-danger";
   removeBtn.type = "button";
   removeBtn.textContent = "Remove";
-  removeBtn.onclick = () => div.remove();
+  removeBtn.onclick = () => {
+    const container = div.parentElement as HTMLDivElement;
+    if (container && container.children.length > 1) {
+      div.remove();
+      updateRemoveButtons(container);
+    }
+  };
   
   div.appendChild(input);
   div.appendChild(removeBtn);
@@ -50,6 +64,7 @@ const renderHostnames = (container: HTMLDivElement, hostnames: string[] | undefi
   } else {
     container.appendChild(createHostnameInput(""));
   }
+  updateRemoveButtons(container);
 };
 
 const loadSettings = () => {
@@ -83,12 +98,15 @@ const saveSettings = () => {
 
 addProdHostnameBtn.addEventListener("click", () => {
   prodHostnamesContainer.appendChild(createHostnameInput());
+  updateRemoveButtons(prodHostnamesContainer);
 });
 addStgHostnameBtn.addEventListener("click", () => {
   stgHostnamesContainer.appendChild(createHostnameInput());
+  updateRemoveButtons(stgHostnamesContainer);
 });
 addDevHostnameBtn.addEventListener("click", () => {
   devHostnamesContainer.appendChild(createHostnameInput());
+  updateRemoveButtons(devHostnamesContainer);
 });
 
 document.addEventListener("DOMContentLoaded", loadSettings);
