@@ -80,15 +80,50 @@ const loadSettings = () => {
 };
 
 const saveSettings = () => {
+  const allInputs = [
+    ...Array.from(prodHostnamesContainer.querySelectorAll(".hostname-input")),
+    ...Array.from(stgHostnamesContainer.querySelectorAll(".hostname-input")),
+    ...Array.from(devHostnamesContainer.querySelectorAll(".hostname-input")),
+  ] as HTMLInputElement[];
+
+  // Clear previous validation states
+  allInputs.forEach(input => input.classList.remove("is-invalid"));
+
+  const prodHostnames = getHostnamesFromContainer(prodHostnamesContainer);
+  const stgHostnames = getHostnamesFromContainer(stgHostnamesContainer);
+  const devHostnames = getHostnamesFromContainer(devHostnamesContainer);
+
+  const allHostnames = [...prodHostnames, ...stgHostnames, ...devHostnames];
+  
+  // Find duplicates and highlight them
+  const counts = new Map<string, number>();
+  allHostnames.forEach(hn => counts.set(hn, (counts.get(hn) || 0) + 1));
+  
+  let hasDuplicates = false;
+  allInputs.forEach(input => {
+    const val = input.value.trim();
+    if (val !== "" && (counts.get(val) || 0) > 1) {
+      input.classList.add("is-invalid");
+      hasDuplicates = true;
+    }
+  });
+
+  if (hasDuplicates) {
+    statusSpan.textContent = "Error: Duplicate hostnames found.";
+    statusSpan.style.color = "red";
+    return;
+  }
+
   chrome.storage.sync.set(
     {
       faviconEnabled: faviconEnabledCheckbox.checked,
-      prodHostnames: getHostnamesFromContainer(prodHostnamesContainer),
-      stgHostnames: getHostnamesFromContainer(stgHostnamesContainer),
-      devHostnames: getHostnamesFromContainer(devHostnamesContainer),
+      prodHostnames,
+      stgHostnames,
+      devHostnames,
     },
     () => {
       statusSpan.textContent = "Sync settings saved.";
+      statusSpan.style.color = "";
       setTimeout(() => {
         statusSpan.textContent = "";
       }, 2000);
