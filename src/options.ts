@@ -213,6 +213,7 @@ const renderEnvironmentSection = (
     input.type = "text";
     input.className = "form-control form-control-sm fw-bold w-auto border-0 bg-transparent ps-0 env-name-input";
     input.value = env.name;
+    input.maxLength = 50; // 50文字制限
     envNameElement = input;
   }
   headerDiv.appendChild(envNameElement);
@@ -417,14 +418,31 @@ const saveSettings = () => {
 
   // バリデーション状態をリセット
   allRows.forEach(({ input }) => input.classList.remove("is-invalid"));
+  envSections.forEach((s) => {
+    if (s.envNameElement instanceof HTMLInputElement) {
+      s.envNameElement.classList.remove("is-invalid");
+    }
+  });
   Elements.toast.classList.remove("show");
 
   let hasInvalid = false;
   let hasDuplicate = false;
+  let hasEmptyName = false;
   const processedPatterns = new Map<HTMLInputElement, HostnamePattern>();
   const seenPatterns = new Map<string, HTMLInputElement>();
 
-  // 全ての行をチェック
+  // 環境名のバリデーション
+  envSections.forEach((s) => {
+    if (s.envNameElement instanceof HTMLInputElement) {
+      const name = s.envNameElement.value.trim();
+      if (name === "") {
+        s.envNameElement.classList.add("is-invalid");
+        hasEmptyName = true;
+      }
+    }
+  });
+
+  // ホスト名パターンのバリデーション
   allRows.forEach(({ input, isRegex }) => {
     const rawValue = input.value.trim();
     if (rawValue === "") return;
@@ -467,7 +485,7 @@ const saveSettings = () => {
     }
   });
 
-  if (hasInvalid || hasDuplicate) {
+  if (hasInvalid || hasDuplicate || hasEmptyName) {
     showStatus(
       hasDuplicate ? t("errorDuplicate") : t("errorInvalid"),
       "red",
@@ -479,7 +497,7 @@ const saveSettings = () => {
   // 保存用データ作成
   const environments: EnvironmentConfig[] = envSections.map((s) => ({
     id: s.envId,
-    name: s.envNameElement instanceof HTMLInputElement ? s.envNameElement.value : s.envNameElement.textContent || "",
+    name: s.envNameElement instanceof HTMLInputElement ? s.envNameElement.value.trim() : s.envNameElement.textContent || "",
     badgeText: s.badgeTextInput.value,
     badgeColor: s.badgeColorInput.value,
     badgeOutlineColor: s.badgeOutlineColorInput.value,
@@ -518,7 +536,7 @@ Elements.addEnvironmentButton.addEventListener("click", () => {
   const id = `custom_${Date.now()}`;
   const newEnv: EnvironmentConfig = {
     id,
-    name: trimmed,
+    name: trimmed.substring(0, 50),
     badgeText: trimmed.substring(0, 4).toLowerCase(),
     badgeColor: "#888888",
     badgeOutlineColor: "#ffffff",
