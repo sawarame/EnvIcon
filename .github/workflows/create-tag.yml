@@ -1,0 +1,36 @@
+name: Create Release Tag
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get version from manifest.json
+        run: |
+          VERSION=$(jq -r '.version' EnvIcon/manifest.json)
+          echo "VERSION=v$VERSION" >> $GITHUB_ENV
+          echo "Detected version: v$VERSION"
+
+      - name: Create and Push Tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          
+          if git ls-remote --tags origin "refs/tags/${VERSION}" | grep -q "${VERSION}"; then
+            echo "Tag ${VERSION} already exists in remote. Skipping tag creation."
+          else
+            git tag "${VERSION}"
+            git push origin "${VERSION}"
+            echo "🎉 Successfully created and pushed tag: ${VERSION}"
+          fi
