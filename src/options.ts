@@ -7,7 +7,9 @@ const Elements = {
   faviconEnabled: document.getElementById("faviconEnabled") as HTMLInputElement,
   saveButton: document.getElementById("save") as HTMLButtonElement,
   languageSelect: document.getElementById("languageSelect") as HTMLSelectElement,
-  status: document.getElementById("status") as HTMLSpanElement,
+  toast: document.getElementById("saveToast") as HTMLDivElement,
+  toastMessage: document.getElementById("toastMessage") as HTMLSpanElement,
+  toastClose: document.getElementById("closeToast") as HTMLButtonElement,
   containers: {
     prod: document.getElementById("prodHostnamesContainer") as HTMLDivElement,
     stg: document.getElementById("stgHostnamesContainer") as HTMLDivElement,
@@ -373,7 +375,7 @@ const saveSettings = () => {
 
   // Reset UI states
   allRows.forEach(({ input }) => input.classList.remove("is-invalid"));
-  Elements.status.textContent = "";
+  Elements.toast.classList.remove("show");
 
   let hasInvalid = false;
   let hasDuplicate = false;
@@ -457,7 +459,6 @@ const saveSettings = () => {
     showStatus(i18nConfig[currentLanguage].saved, "");
     initialSettingsStr = getUIStateString();
     checkDirtyState();
-    setTimeout(() => (Elements.status.textContent = ""), 2000);
   });
 };
 
@@ -475,12 +476,35 @@ const getPatternsFromManager = (
 };
 
 /**
- * Displays a message in the status span.
+ * Displays a message in the toast.
  */
+let toastTimeoutId: ReturnType<typeof setTimeout> | null = null;
 const showStatus = (message: string, color: string) => {
-  Elements.status.textContent = message;
-  Elements.status.style.color = color;
+  if (!Elements.toast || !Elements.toastMessage) return;
+
+  Elements.toastMessage.textContent = message;
+
+  if (color === "red" || color === "danger") {
+    Elements.toast.classList.remove("text-bg-success");
+    Elements.toast.classList.add("text-bg-danger");
+  } else {
+    Elements.toast.classList.remove("text-bg-danger");
+    Elements.toast.classList.add("text-bg-success");
+  }
+
+  // Show Toast
+  Elements.toast.classList.add("show");
+
+  // Auto Hide after 3 seconds
+  if (toastTimeoutId) clearTimeout(toastTimeoutId);
+  toastTimeoutId = setTimeout(() => {
+    Elements.toast.classList.remove("show");
+  }, 3000);
 };
+
+Elements.toastClose?.addEventListener("click", () => {
+  Elements.toast.classList.remove("show");
+});
 
 document.addEventListener("DOMContentLoaded", loadSettings);
 Elements.saveButton.addEventListener("click", saveSettings);
