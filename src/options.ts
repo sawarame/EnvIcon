@@ -330,6 +330,10 @@ const renderEnvironmentSection = (
 
   section.appendChild(hostnameContainer);
   section.appendChild(addHostnameBtn);
+
+  if (container.children.length > 0) {
+    container.appendChild(document.createElement("hr"));
+  }
   container.appendChild(section);
 
   const manager = new HostnameListManager(
