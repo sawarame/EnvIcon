@@ -167,6 +167,7 @@ class HostnameListManager {
 /** 環境セクションごとの管理データ構造 */
 interface EnvSection {
   envId: string;
+  envNameElement: HTMLElement; // label or input
   badgeTextInput: HTMLInputElement;
   badgeColorInput: HTMLInputElement;
   badgeOutlineColorInput: HTMLInputElement;
@@ -195,21 +196,31 @@ const renderEnvironmentSection = (
   // ヘッダー（環境名と削除ボタン）
   const headerDiv = document.createElement("div");
   headerDiv.className = "d-flex align-items-center mb-1";
-  const label = document.createElement("label");
-  label.className = "form-label fw-bold mb-0";
+  
+  let envNameElement: HTMLElement;
+  
   if (["prod", "stg", "dev"].includes(env.id)) {
+    // デフォルト環境はラベル表示（編集不可）
+    const label = document.createElement("label");
+    label.className = "form-label fw-bold mb-0";
     const i18nKey = env.id === "prod" ? "ProductionName" : env.id === "stg" ? "StagingName" : "DevelopmentName";
     label.textContent = t(i18nKey as any);
     label.dataset.i18n = i18nKey;
+    envNameElement = label;
   } else {
-    label.textContent = env.name;
+    // カスタム環境はテキストボックス表示（編集可能）
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "form-control form-control-sm fw-bold w-auto border-0 bg-transparent ps-0 env-name-input";
+    input.value = env.name;
+    envNameElement = input;
   }
-  headerDiv.appendChild(label);
+  headerDiv.appendChild(envNameElement);
 
   if (env.isDeletable) {
     const deleteBtn = document.createElement("button");
     deleteBtn.type = "button";
-    deleteBtn.className = "btn btn-sm btn-outline-danger ms-3";
+    deleteBtn.className = "btn btn-sm btn-outline-danger ms-auto";
     deleteBtn.textContent = t("deleteEnvironment");
     deleteBtn.addEventListener("click", () => {
       const idx = envSections.findIndex((s) => s.envId === env.id);
@@ -307,12 +318,23 @@ const renderEnvironmentSection = (
 
   const record: EnvSection = {
     envId: env.id,
+    envNameElement,
     badgeTextInput,
     badgeColorInput,
     badgeOutlineColorInput,
     hostnameManager: manager,
   };
   envSections.push(record);
+};
+
+/**
+ * EnvSectionから現在の環境名を取得する
+ */
+const getEnvNameValue = (s: EnvSection): string => {
+  if (s.envNameElement instanceof HTMLInputElement) {
+    return s.envNameElement.value;
+  }
+  return s.envNameElement.textContent || "";
 };
 
 // ─── UI State tracking ────────────────────────────────────────────────────────
@@ -327,6 +349,7 @@ const getUIStateString = (): string => {
     faviconEnabled: Elements.faviconEnabled.checked,
     envs: envSections.map((s) => ({
       id: s.envId,
+      name: s.envNameElement instanceof HTMLInputElement ? s.envNameElement.value : s.envNameElement.textContent,
       bt: s.badgeTextInput.value,
       bc: s.badgeColorInput.value,
       bo: s.badgeOutlineColorInput.value,
@@ -456,7 +479,7 @@ const saveSettings = () => {
   // 保存用データ作成
   const environments: EnvironmentConfig[] = envSections.map((s) => ({
     id: s.envId,
-    name: (document.querySelector(`.env-section[data-env-id="${s.envId}"] .form-label`) as HTMLElement)?.textContent || s.envId,
+    name: s.envNameElement instanceof HTMLInputElement ? s.envNameElement.value : s.envNameElement.textContent || "",
     badgeText: s.badgeTextInput.value,
     badgeColor: s.badgeColorInput.value,
     badgeOutlineColor: s.badgeOutlineColorInput.value,
