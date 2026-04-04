@@ -227,6 +227,25 @@ const getHostname = (input: string): string | null => {
 };
 
 /**
+ * UI State tracking
+ */
+let initialSettingsStr = "";
+
+const getUIStateString = (): string => {
+  return JSON.stringify({
+    faviconEnabled: Elements.faviconEnabled.checked,
+    prod: managers.prod.getRows().map((r) => ({ v: r.input.value, r: r.isRegex.checked })),
+    stg: managers.stg.getRows().map((r) => ({ v: r.input.value, r: r.isRegex.checked })),
+    dev: managers.dev.getRows().map((r) => ({ v: r.input.value, r: r.isRegex.checked })),
+  });
+};
+
+const checkDirtyState = () => {
+  const isDirty = getUIStateString() !== initialSettingsStr;
+  Elements.saveButton.disabled = !isDirty;
+};
+
+/**
  * Loads settings from chrome storage and populates the UI.
  */
 const loadSettings = () => {
@@ -237,6 +256,9 @@ const loadSettings = () => {
       managers.prod.render(data.prodHostnames);
       managers.stg.render(data.stgHostnames);
       managers.dev.render(data.devHostnames);
+
+      initialSettingsStr = getUIStateString();
+      checkDirtyState();
     }
   );
 };
@@ -326,6 +348,8 @@ const saveSettings = () => {
 
   chrome.storage.sync.set(settings, () => {
     showStatus("Sync settings saved.", "");
+    initialSettingsStr = getUIStateString();
+    checkDirtyState();
     setTimeout(() => (Elements.status.textContent = ""), 2000);
   });
 };
@@ -353,3 +377,9 @@ const showStatus = (message: string, color: string) => {
 
 document.addEventListener("DOMContentLoaded", loadSettings);
 Elements.saveButton.addEventListener("click", saveSettings);
+
+// Track UI changes to enable/disable Save button
+document.addEventListener("input", checkDirtyState);
+document.addEventListener("change", checkDirtyState);
+document.addEventListener("click", () => setTimeout(checkDirtyState, 0));
+document.addEventListener("dragend", () => setTimeout(checkDirtyState, 0));
