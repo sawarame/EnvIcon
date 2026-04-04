@@ -32,6 +32,9 @@ const i18nConfig = {
     deleteEnvironment: "Delete",
     newEnvPrompt: "Enter a name for the new environment:",
     newEnvCancel: "Cancelled: no environment name was entered.",
+    ProductionName: "Production Environment",
+    StagingName: "Staging Environment",
+    DevelopmentName: "Development Environment",
   },
   ja: {
     title: "Favicon書き換え設定",
@@ -51,6 +54,9 @@ const i18nConfig = {
     deleteEnvironment: "環境を削除",
     newEnvPrompt: "新しい環境名を入力してください:",
     newEnvCancel: "キャンセルされました。",
+    ProductionName: "本番環境（Production）",
+    StagingName: "ステージング環境（Staging）",
+    DevelopmentName: "開発環境（Development）",
   },
 };
 
@@ -215,6 +221,7 @@ const renderEnvironmentSection = (
   env: EnvironmentConfig,
   container: HTMLDivElement
 ) => {
+  
   const section = document.createElement("div");
   section.className = "mt-3 env-section";
   section.dataset.envId = env.id;
@@ -224,7 +231,12 @@ const renderEnvironmentSection = (
   headerDiv.className = "d-flex align-items-center mb-1";
   const label = document.createElement("label");
   label.className = "form-label fw-bold mb-0";
-  label.textContent = env.name;
+  if (["prod", "stg", "dev"].includes(env.id)) {
+    label.textContent = env.id === "prod" ? t("ProductionName") : env.id === "stg" ? t("StagingName") : t("DevelopmentName");
+    label.dataset.i18n = env.id === "prod" ? "ProductionName" : env.id === "stg" ? "StagingName" : "DevelopmentName";
+  } else {
+    label.textContent = env.name;
+  }
   headerDiv.appendChild(label);
 
   // 削除ボタン（deletableな環境のみ）
