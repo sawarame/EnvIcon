@@ -1,12 +1,37 @@
-let _prodHostnames: string[] = [];
-let _stgHostnames: string[] = [];
-let _devHostnames: string[] = [];
+import { HostnamePattern } from "../types";
+
+let _prodHostnames: (string | HostnamePattern)[] = [];
+let _stgHostnames: (string | HostnamePattern)[] = [];
+let _devHostnames: (string | HostnamePattern)[] = [];
 
 const getFavicon = (): HTMLLinkElement | null => {
   return (
     document.querySelector<HTMLLinkElement>("link[rel='icon']") ||
     document.querySelector<HTMLLinkElement>("link[rel='shortcut icon']")
   );
+};
+
+/**
+ * Checks if the current hostname matches any of the given patterns.
+ */
+const isMatch = (
+  patterns: (string | HostnamePattern)[],
+  currentHostname: string
+): boolean => {
+  return patterns.some((p) => {
+    if (typeof p === "string") {
+      return p === currentHostname;
+    }
+    if (p.isRegex) {
+      try {
+        const re = new RegExp(p.value);
+        return re.test(currentHostname);
+      } catch {
+        return false;
+      }
+    }
+    return p.value === currentHostname;
+  });
 };
 
 const updateFavicon = () => {
@@ -33,13 +58,13 @@ const updateFavicon = () => {
     let text: string, color: string;
     const currentHostname = window.location.hostname;
 
-    if (_prodHostnames.includes(currentHostname)) {
+    if (isMatch(_prodHostnames, currentHostname)) {
       text = "prod";
       color = "#FF0000"; // Red
-    } else if (_stgHostnames.includes(currentHostname)) {
+    } else if (isMatch(_stgHostnames, currentHostname)) {
       text = "stg";
       color = "#0000FF"; // Blue
-    } else if (_devHostnames.includes(currentHostname)) {
+    } else if (isMatch(_devHostnames, currentHostname)) {
       text = "dev";
       color = "#008000"; // Green
     } else {
@@ -101,9 +126,9 @@ const observer = new MutationObserver((mutationsList: MutationRecord[]) => {
 });
 
 export const initializeFaviconChangerFeature = (
-  prodHostnames: string[] = [],
-  stgHostnames: string[] = [],
-  devHostnames: string[] = []
+  prodHostnames: (string | HostnamePattern)[] = [],
+  stgHostnames: (string | HostnamePattern)[] = [],
+  devHostnames: (string | HostnamePattern)[] = []
 ) => {
   _prodHostnames = prodHostnames;
   _stgHostnames = stgHostnames;

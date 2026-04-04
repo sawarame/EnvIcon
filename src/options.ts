@@ -1,4 +1,4 @@
-import { SyncData } from "./types";
+import { SyncData, HostnamePattern } from "./types";
 
 /**
  * DOM Elements references
@@ -32,17 +32,46 @@ class HostnameListManager {
 
   /**
    * Adds a new hostname input field to the container.
-   * @param value Optional initial value for the input.
+   * @param pattern Optional initial value for the input.
    */
-  addInput(value: string = "") {
+  addInput(pattern: string | HostnamePattern = { value: "", isRegex: false }) {
+    const value = typeof pattern === "string" ? pattern : pattern.value;
+    const isRegex = typeof pattern === "string" ? false : pattern.isRegex;
+
     const div = document.createElement("div");
     div.className = "input-group mb-2";
+
+    // Regex Checkbox
+    const checkboxDiv = document.createElement("div");
+    checkboxDiv.className = "input-group-text";
+    
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.id = `regex-${Math.random().toString(36).substr(2, 9)}`; // Unique ID
+    checkbox.className = "form-check-input mt-0 is-regex";
+    checkbox.title = "Use Regular Expression";
+    checkbox.checked = isRegex;
+    
+    const label = document.createElement("label");
+    label.htmlFor = checkbox.id;
+    label.textContent = "Regex";
+    label.className = "ms-2 small mb-0";
+    label.style.cursor = "pointer";
+    label.title = "Use Regular Expression";
+
+    checkboxDiv.appendChild(checkbox);
+    checkboxDiv.appendChild(label);
 
     const input = document.createElement("input");
     input.type = "text";
     input.className = "form-control hostname-input";
     input.value = value;
-    input.placeholder = "example.com";
+    input.placeholder = isRegex ? "e.g. ^.*\\.local$" : "example.com";
+
+    // Update placeholder when checkbox toggles
+    checkbox.onchange = () => {
+      input.placeholder = checkbox.checked ? "e.g. ^.*\\.local$" : "example.com";
+    };
 
     const removeBtn = document.createElement("button");
     removeBtn.className = "btn btn-outline-danger";
@@ -55,6 +84,7 @@ class HostnameListManager {
       }
     };
 
+    div.appendChild(checkboxDiv);
     div.appendChild(input);
     div.appendChild(removeBtn);
     this.container.appendChild(div);
@@ -63,24 +93,25 @@ class HostnameListManager {
 
   /**
    * Renders multiple hostname inputs.
-   * @param hostnames Array of hostnames to render.
+   * @param hostnames Array of hostnames or patterns to render.
    */
-  render(hostnames: string[] | undefined) {
+  render(hostnames: (string | HostnamePattern)[] | undefined) {
     this.container.innerHTML = "";
     if (hostnames && hostnames.length > 0) {
       hostnames.forEach((hn) => this.addInput(hn));
     } else {
-      this.addInput("");
+      this.addInput();
     }
   }
 
   /**
-   * Retrieves all input elements in this container.
+   * Retrieves all row elements in this container.
    */
-  getInputs(): HTMLInputElement[] {
-    return Array.from(
-      this.container.querySelectorAll(".hostname-input")
-    ) as HTMLInputElement[];
+  getRows(): { input: HTMLInputElement; isRegex: HTMLInputElement }[] {
+    return Array.from(this.container.children).map((div) => ({
+      input: div.querySelector(".hostname-input") as HTMLInputElement,
+      isRegex: div.querySelector(".is-regex") as HTMLInputElement,
+    }));
   }
 
   /**
@@ -149,62 +180,57 @@ const loadSettings = () => {
  * Validates all inputs, extracts hostnames, and saves settings to chrome storage.
  */
 const saveSettings = () => {
-  const allInputs = [
-    ...managers.prod.getInputs(),
-    ...managers.stg.getInputs(),
-    ...managers.dev.getInputs(),
+  const allRows = [
+    ...managers.prod.getRows(),
+    ...managers.stg.getRows(),
+    ...managers.dev.getRows(),
   ];
 
   // Reset UI states
-  allInputs.forEach((input) => input.classList.remove("is-invalid"));
+  allRows.forEach(({ input }) => input.classList.remove("is-invalid"));
   Elements.status.textContent = "";
 
   let hasInvalid = false;
-  const processedValues = new Map<HTMLInputElement, string>();
+  const processedPatterns = new Map<HTMLInputElement, HostnamePattern>();
 
   // Extract and validate
-  allInputs.forEach((input) => {
+  allRows.forEach(({ input, isRegex }) => {
     const rawValue = input.value.trim();
     if (rawValue === "") return;
 
-    const hostname = getHostname(rawValue);
-    if (!hostname) {
-      input.classList.add("is-invalid");
-      hasInvalid = true;
+    if (isRegex.checked) {
+      // Validate Regex
+      try {
+        new RegExp(rawValue);
+        processedPatterns.set(input, { value: rawValue, isRegex: true });
+      } catch (e) {
+        input.classList.add("is-invalid");
+        hasInvalid = true;
+      }
     } else {
-      input.value = hostname; // Update UI with cleaned hostname
-      processedValues.set(input, hostname);
+      // Validate Hostname
+      const hostname = getHostname(rawValue);
+      if (!hostname) {
+        input.classList.add("is-invalid");
+        hasInvalid = true;
+      } else {
+        input.value = hostname; // Update UI with cleaned hostname
+        processedPatterns.set(input, { value: hostname, isRegex: false });
+      }
     }
   });
 
   if (hasInvalid) {
-    showStatus("Error: Invalid URL or hostname found.", "red");
-    return;
-  }
-
-  // Duplicate check
-  const counts = new Map<string, number>();
-  processedValues.forEach((hn) => counts.set(hn, (counts.get(hn) || 0) + 1));
-
-  let hasDuplicates = false;
-  processedValues.forEach((hn, input) => {
-    if ((counts.get(hn) || 0) > 1) {
-      input.classList.add("is-invalid");
-      hasDuplicates = true;
-    }
-  });
-
-  if (hasDuplicates) {
-    showStatus("Error: Duplicate hostnames found.", "red");
+    showStatus("Error: Invalid URL, hostname, or regex found.", "red");
     return;
   }
 
   // Save to storage
   const settings: SyncData = {
     faviconEnabled: Elements.faviconEnabled.checked,
-    prodHostnames: getValuesFromManager(managers.prod, processedValues),
-    stgHostnames: getValuesFromManager(managers.stg, processedValues),
-    devHostnames: getValuesFromManager(managers.dev, processedValues),
+    prodHostnames: getPatternsFromManager(managers.prod, processedPatterns),
+    stgHostnames: getPatternsFromManager(managers.stg, processedPatterns),
+    devHostnames: getPatternsFromManager(managers.dev, processedPatterns),
   };
 
   chrome.storage.sync.set(settings, () => {
@@ -214,16 +240,16 @@ const saveSettings = () => {
 };
 
 /**
- * Helper to get processed hostname values for a specific manager.
+ * Helper to get processed patterns for a specific manager.
  */
-const getValuesFromManager = (
+const getPatternsFromManager = (
   manager: HostnameListManager,
-  processedMap: Map<HTMLInputElement, string>
-): string[] => {
+  processedMap: Map<HTMLInputElement, HostnamePattern>
+): HostnamePattern[] => {
   return manager
-    .getInputs()
-    .map((input) => processedMap.get(input) || "")
-    .filter((v) => v !== "");
+    .getRows()
+    .map(({ input }) => processedMap.get(input))
+    .filter((v): v is HostnamePattern => v !== undefined);
 };
 
 /**
