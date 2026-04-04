@@ -1,8 +1,6 @@
-import { HostnamePattern } from "../types";
+import { SyncData, HostnamePattern } from "../types";
 
-let _prodHostnames: (string | HostnamePattern)[] = [];
-let _stgHostnames: (string | HostnamePattern)[] = [];
-let _devHostnames: (string | HostnamePattern)[] = [];
+let _syncData: SyncData = {};
 let _lastGeneratedFaviconHref = "";
 
 const getFavicon = (): HTMLLinkElement | null => {
@@ -16,9 +14,10 @@ const getFavicon = (): HTMLLinkElement | null => {
  * Checks if the current hostname matches any of the given patterns.
  */
 const isMatch = (
-  patterns: (string | HostnamePattern)[],
+  patterns: (string | HostnamePattern)[] | undefined,
   currentHostname: string
 ): boolean => {
+  if (!patterns) return false;
   return patterns.some((p) => {
     if (typeof p === "string") {
       return p === currentHostname;
@@ -56,18 +55,21 @@ const updateFavicon = () => {
     canvas.height = size;
     ctx.drawImage(img, 0, 0, size, size);
 
-    let text: string, color: string;
+    let text: string, color: string, outlineColor: string;
     const currentHostname = window.location.hostname;
 
-    if (isMatch(_prodHostnames, currentHostname)) {
-      text = "prod";
-      color = "#FF0000"; // Red
-    } else if (isMatch(_stgHostnames, currentHostname)) {
-      text = "stg";
-      color = "#0000FF"; // Blue
-    } else if (isMatch(_devHostnames, currentHostname)) {
-      text = "dev";
-      color = "#008000"; // Green
+    if (isMatch(_syncData.prodHostnames, currentHostname)) {
+      text = _syncData.prodBadgeText || "prod";
+      color = _syncData.prodBadgeColor || "#FF0000";
+      outlineColor = _syncData.prodBadgeOutlineColor || "#FFFFFF";
+    } else if (isMatch(_syncData.stgHostnames, currentHostname)) {
+      text = _syncData.stgBadgeText || "stg";
+      color = _syncData.stgBadgeColor || "#0000FF";
+      outlineColor = _syncData.stgBadgeOutlineColor || "#FFFFFF";
+    } else if (isMatch(_syncData.devHostnames, currentHostname)) {
+      text = _syncData.devBadgeText || "dev";
+      color = _syncData.devBadgeColor || "#008000";
+      outlineColor = _syncData.devBadgeOutlineColor || "#FFFFFF";
     } else {
       return;
     }
@@ -79,7 +81,7 @@ const updateFavicon = () => {
     ctx.textBaseline = "bottom";
 
     // Draw text outline (white border)
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.95)";
+    ctx.strokeStyle = outlineColor;
     ctx.lineWidth = Math.max(size / 12, 2);
     ctx.lineJoin = "round";
     ctx.strokeText(text, size / 2, size - 1);
@@ -140,13 +142,9 @@ const observer = new MutationObserver((mutationsList: MutationRecord[]) => {
 });
 
 export const initializeFaviconChangerFeature = (
-  prodHostnames: (string | HostnamePattern)[] = [],
-  stgHostnames: (string | HostnamePattern)[] = [],
-  devHostnames: (string | HostnamePattern)[] = []
+  syncData: SyncData
 ) => {
-  _prodHostnames = prodHostnames;
-  _stgHostnames = stgHostnames;
-  _devHostnames = devHostnames;
+  _syncData = syncData;
 
   // Handle cases where the favicon already exists at script injection time
   if (getFavicon()) {

@@ -71,19 +71,88 @@
           </label>
         </div>
         <div class="mt-3">
-          <label class="form-label" data-i18n="prodHostnames">Production Hostnames</label>
+          <label class="form-label fw-bold" data-i18n="prodHostnames">Production Hostnames</label>
+          <div class="row align-items-center mb-2">
+            <div class="col-auto">
+              <label class="col-form-label small text-muted" data-i18n="badgeTextLabel">Badge Text</label>
+            </div>
+            <div class="col-auto">
+              <input type="text" class="form-control form-control-sm" id="prodBadgeText" maxlength="4" style="width: 80px;">
+            </div>
+            <div class="col-auto">
+              <label class="col-form-label small text-muted" data-i18n="badgeColorLabel">Color</label>
+            </div>
+            <div class="col-auto">
+              <input type="color" class="form-control form-control-color" id="prodBadgeColor" title="Choose your color">
+            </div>
+            <div class="col-auto">
+              <label class="col-form-label small text-muted" data-i18n="badgeOutlineColorLabel">Outline</label>
+            </div>
+            <div class="col-auto">
+              <input type="color" class="form-control form-control-color" id="prodBadgeOutlineColor" title="Choose outline color" value="#ffffff">
+            </div>
+            <div class="col-auto ms-auto">
+              <button type="button" class="btn btn-sm btn-link text-decoration-none" id="resetProdBadge" data-i18n="resetDefault">Reset</button>
+            </div>
+          </div>
           <div id="prodHostnamesContainer"></div>
           <button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="addProdHostname"
             data-i18n="addHostname">Add Hostname</button>
         </div>
         <div class="mt-3">
-          <label class="form-label" data-i18n="stgHostnames">Staging Hostnames</label>
+          <label class="form-label fw-bold" data-i18n="stgHostnames">Staging Hostnames</label>
+          <div class="row align-items-center mb-2">
+            <div class="col-auto">
+              <label class="col-form-label small text-muted" data-i18n="badgeTextLabel">Badge Text</label>
+            </div>
+            <div class="col-auto">
+              <input type="text" class="form-control form-control-sm" id="stgBadgeText" maxlength="4" style="width: 80px;">
+            </div>
+            <div class="col-auto">
+              <label class="col-form-label small text-muted" data-i18n="badgeColorLabel">Color</label>
+            </div>
+            <div class="col-auto">
+              <input type="color" class="form-control form-control-color" id="stgBadgeColor" title="Choose your color">
+            </div>
+            <div class="col-auto">
+              <label class="col-form-label small text-muted" data-i18n="badgeOutlineColorLabel">Outline</label>
+            </div>
+            <div class="col-auto">
+              <input type="color" class="form-control form-control-color" id="stgBadgeOutlineColor" title="Choose outline color" value="#ffffff">
+            </div>
+            <div class="col-auto ms-auto">
+              <button type="button" class="btn btn-sm btn-link text-decoration-none" id="resetStgBadge" data-i18n="resetDefault">Reset</button>
+            </div>
+          </div>
           <div id="stgHostnamesContainer"></div>
           <button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="addStgHostname"
             data-i18n="addHostname">Add Hostname</button>
         </div>
         <div class="mt-3">
-          <label class="form-label" data-i18n="devHostnames">Development Hostnames</label>
+          <label class="form-label fw-bold" data-i18n="devHostnames">Development Hostnames</label>
+          <div class="row align-items-center mb-2">
+            <div class="col-auto">
+              <label class="col-form-label small text-muted" data-i18n="badgeTextLabel">Badge Text</label>
+            </div>
+            <div class="col-auto">
+              <input type="text" class="form-control form-control-sm" id="devBadgeText" maxlength="4" style="width: 80px;">
+            </div>
+            <div class="col-auto">
+              <label class="col-form-label small text-muted" data-i18n="badgeColorLabel">Color</label>
+            </div>
+            <div class="col-auto">
+              <input type="color" class="form-control form-control-color" id="devBadgeColor" title="Choose your color">
+            </div>
+            <div class="col-auto">
+              <label class="col-form-label small text-muted" data-i18n="badgeOutlineColorLabel">Outline</label>
+            </div>
+            <div class="col-auto">
+              <input type="color" class="form-control form-control-color" id="devBadgeOutlineColor" title="Choose outline color" value="#ffffff">
+            </div>
+            <div class="col-auto ms-auto">
+              <button type="button" class="btn btn-sm btn-link text-decoration-none" id="resetDevBadge" data-i18n="resetDefault">Reset</button>
+            </div>
+          </div>
           <div id="devHostnamesContainer"></div>
           <button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="addDevHostname"
             data-i18n="addHostname">Add Hostname</button>

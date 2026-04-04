@@ -18,6 +18,26 @@ const Elements = {
     stg: document.getElementById("addStgHostname") as HTMLButtonElement,
     dev: document.getElementById("addDevHostname") as HTMLButtonElement,
   },
+  badges: {
+    prod: {
+      text: document.getElementById("prodBadgeText") as HTMLInputElement,
+      color: document.getElementById("prodBadgeColor") as HTMLInputElement,
+      outlineColor: document.getElementById("prodBadgeOutlineColor") as HTMLInputElement,
+      reset: document.getElementById("resetProdBadge") as HTMLButtonElement,
+    },
+    stg: {
+      text: document.getElementById("stgBadgeText") as HTMLInputElement,
+      color: document.getElementById("stgBadgeColor") as HTMLInputElement,
+      outlineColor: document.getElementById("stgBadgeOutlineColor") as HTMLInputElement,
+      reset: document.getElementById("resetStgBadge") as HTMLButtonElement,
+    },
+    dev: {
+      text: document.getElementById("devBadgeText") as HTMLInputElement,
+      color: document.getElementById("devBadgeColor") as HTMLInputElement,
+      outlineColor: document.getElementById("devBadgeOutlineColor") as HTMLInputElement,
+      reset: document.getElementById("resetDevBadge") as HTMLButtonElement,
+    },
+  },
 };
 
 const i18nConfig = {
@@ -34,6 +54,10 @@ const i18nConfig = {
     saved: "Sync settings saved.",
     errorInvalid: "Error: Invalid URL, hostname, or regex found.",
     errorDuplicate: "Error: Duplicate hostnames or regex patterns found.",
+    badgeTextLabel: "Badge Text",
+    badgeColorLabel: "Color",
+    badgeOutlineColorLabel: "Outline",
+    resetDefault: "Reset to default",
   },
   ja: {
     title: "Favicon書き換え設定",
@@ -48,6 +72,10 @@ const i18nConfig = {
     saved: "設定を保存しました。",
     errorInvalid: "エラー: 無効なURL、ホスト名、または正規表現が含まれています。",
     errorDuplicate: "エラー: 重複するホスト名または正規表現パターンが含まれています。",
+    badgeTextLabel: "バッジ文字",
+    badgeColorLabel: "色",
+    badgeOutlineColorLabel: "フチ色",
+    resetDefault: "デフォルトに戻す",
   },
 };
 
@@ -281,8 +309,11 @@ const getUIStateString = (): string => {
   return JSON.stringify({
     faviconEnabled: Elements.faviconEnabled.checked,
     prod: managers.prod.getRows().map((r) => ({ v: r.input.value, r: r.isRegex.checked })),
+    prodBadge: { t: Elements.badges.prod.text.value, c: Elements.badges.prod.color.value, o: Elements.badges.prod.outlineColor.value },
     stg: managers.stg.getRows().map((r) => ({ v: r.input.value, r: r.isRegex.checked })),
+    stgBadge: { t: Elements.badges.stg.text.value, c: Elements.badges.stg.color.value, o: Elements.badges.stg.outlineColor.value },
     dev: managers.dev.getRows().map((r) => ({ v: r.input.value, r: r.isRegex.checked })),
+    devBadge: { t: Elements.badges.dev.text.value, c: Elements.badges.dev.color.value, o: Elements.badges.dev.outlineColor.value },
   });
 };
 
@@ -305,9 +336,20 @@ const loadSettings = () => {
     applyTranslations();
 
     chrome.storage.sync.get(
-      ["faviconEnabled", "prodHostnames", "stgHostnames", "devHostnames"],
+      null,
       (data: SyncData) => {
         Elements.faviconEnabled.checked = data.faviconEnabled ?? true;
+
+        Elements.badges.prod.text.value = data.prodBadgeText || "prod";
+        Elements.badges.prod.color.value = data.prodBadgeColor || "#ff0000";
+        Elements.badges.prod.outlineColor.value = data.prodBadgeOutlineColor || "#ffffff";
+        Elements.badges.stg.text.value = data.stgBadgeText || "stg";
+        Elements.badges.stg.color.value = data.stgBadgeColor || "#0000ff";
+        Elements.badges.stg.outlineColor.value = data.stgBadgeOutlineColor || "#ffffff";
+        Elements.badges.dev.text.value = data.devBadgeText || "dev";
+        Elements.badges.dev.color.value = data.devBadgeColor || "#008000";
+        Elements.badges.dev.outlineColor.value = data.devBadgeOutlineColor || "#ffffff";
+
         managers.prod.render(data.prodHostnames);
         managers.stg.render(data.stgHostnames);
         managers.dev.render(data.devHostnames);
@@ -397,6 +439,15 @@ const saveSettings = () => {
   // Save to storage
   const settings: SyncData = {
     faviconEnabled: Elements.faviconEnabled.checked,
+    prodBadgeText: Elements.badges.prod.text.value,
+    prodBadgeColor: Elements.badges.prod.color.value,
+    prodBadgeOutlineColor: Elements.badges.prod.outlineColor.value,
+    stgBadgeText: Elements.badges.stg.text.value,
+    stgBadgeColor: Elements.badges.stg.color.value,
+    stgBadgeOutlineColor: Elements.badges.stg.outlineColor.value,
+    devBadgeText: Elements.badges.dev.text.value,
+    devBadgeColor: Elements.badges.dev.color.value,
+    devBadgeOutlineColor: Elements.badges.dev.outlineColor.value,
     prodHostnames: getPatternsFromManager(managers.prod, processedPatterns),
     stgHostnames: getPatternsFromManager(managers.stg, processedPatterns),
     devHostnames: getPatternsFromManager(managers.dev, processedPatterns),
@@ -433,6 +484,22 @@ const showStatus = (message: string, color: string) => {
 
 document.addEventListener("DOMContentLoaded", loadSettings);
 Elements.saveButton.addEventListener("click", saveSettings);
+
+// Reset badge configurations to default
+const resetBadgeDefaults = (env: "prod" | "stg" | "dev") => {
+  const defaults = {
+    prod: { t: "prod", c: "#ff0000", o: "#ffffff" },
+    stg: { t: "stg", c: "#0000ff", o: "#ffffff" },
+    dev: { t: "dev", c: "#008000", o: "#ffffff" },
+  };
+  Elements.badges[env].text.value = defaults[env].t;
+  Elements.badges[env].color.value = defaults[env].c;
+  Elements.badges[env].outlineColor.value = defaults[env].o;
+  checkDirtyState();
+};
+Elements.badges.prod.reset.addEventListener("click", () => resetBadgeDefaults("prod"));
+Elements.badges.stg.reset.addEventListener("click", () => resetBadgeDefaults("stg"));
+Elements.badges.dev.reset.addEventListener("click", () => resetBadgeDefaults("dev"));
 
 // Track UI changes to enable/disable Save button
 document.addEventListener("input", checkDirtyState);
