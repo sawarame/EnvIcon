@@ -43,6 +43,11 @@
     .drag-over {
       border-top: 2px solid #0d6efd !important;
     }
+
+    /* Make text inputs placeholder lighter to distinguish from actual input */
+    .form-control::placeholder {
+      opacity: 0.4 !important;
+    }
   </style>
 </head>
 
@@ -86,7 +91,7 @@
       </div>
     </div>
 
-    <button id="save" class="btn btn-primary" data-i18n="save">Save</button>
+    <button id="save" class="btn btn-primary mt-4" data-i18n="save">Save</button>
     <span id="status" class="ms-2"></span>
   </div>
 
