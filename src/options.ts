@@ -256,21 +256,28 @@ const saveSettings = () => {
   Elements.status.textContent = "";
 
   let hasInvalid = false;
+  let hasDuplicate = false;
   const processedPatterns = new Map<HTMLInputElement, HostnamePattern>();
+  const seenPatterns = new Map<string, HTMLInputElement>();
 
   // Extract and validate
   allRows.forEach(({ input, isRegex }) => {
     const rawValue = input.value.trim();
     if (rawValue === "") return;
 
+    let isValid = true;
+    let patternKey = "";
+
     if (isRegex.checked) {
       // Validate Regex
       try {
         new RegExp(rawValue);
+        patternKey = `regex:${rawValue}`;
         processedPatterns.set(input, { value: rawValue, isRegex: true });
       } catch (e) {
         input.classList.add("is-invalid");
         hasInvalid = true;
+        isValid = false;
       }
     } else {
       // Validate Hostname
@@ -278,15 +285,34 @@ const saveSettings = () => {
       if (!hostname) {
         input.classList.add("is-invalid");
         hasInvalid = true;
+        isValid = false;
       } else {
         input.value = hostname; // Update UI with cleaned hostname
+        patternKey = `host:${hostname}`;
         processedPatterns.set(input, { value: hostname, isRegex: false });
+      }
+    }
+
+    // Check for duplicates
+    if (isValid && patternKey) {
+      if (seenPatterns.has(patternKey)) {
+        input.classList.add("is-invalid");
+        const firstInput = seenPatterns.get(patternKey);
+        if (firstInput) {
+          firstInput.classList.add("is-invalid");
+        }
+        hasDuplicate = true;
+      } else {
+        seenPatterns.set(patternKey, input);
       }
     }
   });
 
-  if (hasInvalid) {
-    showStatus("Error: Invalid URL, hostname, or regex found.", "red");
+  if (hasInvalid || hasDuplicate) {
+    const msg = hasDuplicate
+      ? "Error: Duplicate hostnames or regex patterns found."
+      : "Error: Invalid URL, hostname, or regex found.";
+    showStatus(msg, "red");
     return;
   }
 
