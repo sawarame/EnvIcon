@@ -1,6 +1,10 @@
 import { SyncData, HostnamePattern, EnvironmentConfig } from "./types";
+import { setLanguage, t, applyTranslations, Language } from "./options/i18n";
+import { getHostname, showStatus } from "./options/utils";
 
-// ─── DOM Elements ────────────────────────────────────────────────────────────
+/**
+ * ページ内の主要なDOM要素
+ */
 const Elements = {
   faviconEnabled: document.getElementById("faviconEnabled") as HTMLInputElement,
   saveButton: document.getElementById("save") as HTMLButtonElement,
@@ -12,68 +16,9 @@ const Elements = {
   toastClose: document.getElementById("closeToast") as HTMLButtonElement,
 };
 
-// ─── i18n ────────────────────────────────────────────────────────────────────
-const i18nConfig = {
-  en: {
-    title: "Favicon Replacement Settings",
-    enableFavicon: "Enable environment-specific favicon replacement",
-    addHostname: "Add Hostname",
-    remove: "Remove",
-    regex: "Regex",
-    save: "Save",
-    saved: "Sync settings saved.",
-    errorInvalid: "Error: Invalid URL, hostname, or regex found.",
-    errorDuplicate: "Error: Duplicate hostnames or regex patterns found.",
-    badgeTextLabel: "Badge Text",
-    badgeColorLabel: "Color",
-    badgeOutlineColorLabel: "Outline",
-    resetDefault: "Reset to default",
-    addEnvironment: "+ Add Environment",
-    deleteEnvironment: "Delete",
-    newEnvPrompt: "Enter a name for the new environment:",
-    newEnvCancel: "Cancelled: no environment name was entered.",
-    ProductionName: "Production Environment",
-    StagingName: "Staging Environment",
-    DevelopmentName: "Development Environment",
-  },
-  ja: {
-    title: "Favicon書き換え設定",
-    enableFavicon: "環境ごとのFavicon書き換えを有効にする",
-    addHostname: "ホスト名を追加",
-    remove: "削除",
-    regex: "正規表現",
-    save: "保存",
-    saved: "設定を保存しました。",
-    errorInvalid: "エラー: 無効なURL、ホスト名、または正規表現が含まれています。",
-    errorDuplicate: "エラー: 重複するホスト名または正規表現パターンが含まれています。",
-    badgeTextLabel: "バッジ文字",
-    badgeColorLabel: "色",
-    badgeOutlineColorLabel: "フチ色",
-    resetDefault: "デフォルトに戻す",
-    addEnvironment: "+ 環境追加",
-    deleteEnvironment: "環境を削除",
-    newEnvPrompt: "新しい環境名を入力してください:",
-    newEnvCancel: "キャンセルされました。",
-    ProductionName: "本番環境（Production）",
-    StagingName: "ステージング環境（Staging）",
-    DevelopmentName: "開発環境（Development）",
-  },
-};
-
-let currentLanguage: "en" | "ja" = "en";
-
-const t = (key: keyof typeof i18nConfig["en"]): string =>
-  i18nConfig[currentLanguage][key];
-
-const applyTranslations = () => {
-  const dict = i18nConfig[currentLanguage];
-  document.querySelectorAll("[data-i18n]").forEach((el) => {
-    const key = el.getAttribute("data-i18n") as keyof typeof dict;
-    if (dict[key]) el.textContent = dict[key];
-  });
-};
-
-// ─── HostnameListManager ─────────────────────────────────────────────────────
+/**
+ * ホスト名入力リストの表示と操作（追加・削除・ドラッグ順序変更）を管理するクラス
+ */
 class HostnameListManager {
   private draggingElement: HTMLElement | null = null;
 
@@ -85,6 +30,10 @@ class HostnameListManager {
     this.setupContainerEvents();
   }
 
+  /**
+   * 新しいホスト名入力行を追加する
+   * @param pattern 初期値としてのパターン情報
+   */
   addInput(pattern: string | HostnamePattern = { value: "", isRegex: false }) {
     const value = typeof pattern === "string" ? pattern : pattern.value;
     const isRegex = typeof pattern === "string" ? false : pattern.isRegex;
@@ -144,6 +93,9 @@ class HostnameListManager {
     this.updateRemoveButtonsState();
   }
 
+  /**
+   * 要素にドラッグ＆ドロップイベントをバインドする
+   */
   private bindDragEvents(el: HTMLElement) {
     el.addEventListener("dragstart", (e) => {
       this.draggingElement = el;
@@ -178,6 +130,9 @@ class HostnameListManager {
     this.container.addEventListener("dragover", (e) => e.preventDefault());
   }
 
+  /**
+   * 指定されたホスト名リストを元にUIをレンダリングする
+   */
   render(hostnames: (string | HostnamePattern)[] | undefined) {
     this.container.innerHTML = "";
     if (hostnames && hostnames.length > 0) {
@@ -187,6 +142,9 @@ class HostnameListManager {
     }
   }
 
+  /**
+   * 現在表示されている全ての入力行の要素を返す
+   */
   getRows(): { input: HTMLInputElement; isRegex: HTMLInputElement }[] {
     return Array.from(this.container.children).map((div) => ({
       input: div.querySelector(".hostname-input") as HTMLInputElement,
@@ -194,6 +152,9 @@ class HostnameListManager {
     }));
   }
 
+  /**
+   * 削除ボタンの有効/無効状態を更新する（1行だけのときは削除不可）
+   */
   private updateRemoveButtonsState() {
     const buttons = this.container.querySelectorAll(
       ".btn-outline-danger"
@@ -203,7 +164,7 @@ class HostnameListManager {
   }
 }
 
-// ─── Environment Section Manager ─────────────────────────────────────────────
+/** 環境セクションごとの管理データ構造 */
 interface EnvSection {
   envId: string;
   badgeTextInput: HTMLInputElement;
@@ -212,10 +173,13 @@ interface EnvSection {
   hostnameManager: HostnameListManager;
 }
 
+/** 現在画面に表示されている環境セクションのリスト */
 const envSections: EnvSection[] = [];
 
 /**
- * 環境セクションのDOM要素を動的に生成してコンテナに追加する
+ * 環境セクション（名前、バッジ設定、ホスト名リスト）のDOM要素を動的に生成してコンテナに追加する
+ * @param env 環境設定データ
+ * @param container 追加先のコンテナ要素
  */
 const renderEnvironmentSection = (
   env: EnvironmentConfig,
@@ -226,20 +190,20 @@ const renderEnvironmentSection = (
   section.className = "mt-3 env-section";
   section.dataset.envId = env.id;
 
-  // ヘッダー
+  // ヘッダー（環境名と削除ボタン）
   const headerDiv = document.createElement("div");
   headerDiv.className = "d-flex align-items-center mb-1";
   const label = document.createElement("label");
   label.className = "form-label fw-bold mb-0";
   if (["prod", "stg", "dev"].includes(env.id)) {
-    label.textContent = env.id === "prod" ? t("ProductionName") : env.id === "stg" ? t("StagingName") : t("DevelopmentName");
-    label.dataset.i18n = env.id === "prod" ? "ProductionName" : env.id === "stg" ? "StagingName" : "DevelopmentName";
+    const i18nKey = env.id === "prod" ? "ProductionName" : env.id === "stg" ? "StagingName" : "DevelopmentName";
+    label.textContent = t(i18nKey as any);
+    label.dataset.i18n = i18nKey;
   } else {
     label.textContent = env.name;
   }
   headerDiv.appendChild(label);
 
-  // 削除ボタン（deletableな環境のみ）
   if (env.isDeletable) {
     const deleteBtn = document.createElement("button");
     deleteBtn.type = "button";
@@ -255,16 +219,16 @@ const renderEnvironmentSection = (
   }
   section.appendChild(headerDiv);
 
-  // バッジ設定ロー
+  // バッジ設定エリア
   const badgeRow = document.createElement("div");
   badgeRow.className = "row align-items-center mb-2";
 
-  const makeColLabel = (i18nKey: keyof typeof i18nConfig["en"]) => {
+  const makeColLabel = (i18nKey: string) => {
     const col = document.createElement("div");
     col.className = "col-auto";
     const lbl = document.createElement("label");
     lbl.className = "col-form-label small text-muted";
-    lbl.textContent = t(i18nKey);
+    lbl.textContent = t(i18nKey as any);
     lbl.dataset.i18n = i18nKey;
     col.appendChild(lbl);
     return col;
@@ -293,7 +257,7 @@ const renderEnvironmentSection = (
     "color", "form-control-color", env.badgeOutlineColor
   );
 
-  // Reset button
+  // デフォルトに戻すボタン
   const resetColDiv = document.createElement("div");
   resetColDiv.className = "col-auto ms-auto";
   const resetBtn = document.createElement("button");
@@ -318,7 +282,7 @@ const renderEnvironmentSection = (
   badgeRow.appendChild(resetColDiv);
   section.appendChild(badgeRow);
 
-  // ホスト名コンテナとAddボタン
+  // ホスト名リストエリア
   const hostnameContainer = document.createElement("div");
   hostnameContainer.className = "hostnames-container";
 
@@ -331,6 +295,7 @@ const renderEnvironmentSection = (
   section.appendChild(hostnameContainer);
   section.appendChild(addHostnameBtn);
 
+  // 前に要素がある場合は区切り線を入れる
   if (container.children.length > 0) {
     container.appendChild(document.createElement("hr"));
   }
@@ -352,28 +317,13 @@ const renderEnvironmentSection = (
   envSections.push(record);
 };
 
-// ─── Hostname validation ──────────────────────────────────────────────────────
-const getHostname = (input: string): string | null => {
-  const text = input.trim();
-  if (!text) return null;
-  try {
-    const hasProtocol = /^[a-z]+:\/\//i.test(text);
-    const url = new URL(hasProtocol ? text : "http://" + text);
-    const hostname = url.hostname.toLowerCase();
-    if (!hostname) return null;
-    const isValidStructure =
-      (/^[a-z0-9.-]+$/i.test(hostname) || /^\[[a-f0-9:]+\]$/.test(hostname)) &&
-      !/^[.-]|[.-]$/.test(hostname) &&
-      !hostname.includes("..");
-    return isValidStructure ? hostname : null;
-  } catch {
-    return null;
-  }
-};
-
 // ─── UI State tracking ────────────────────────────────────────────────────────
+/** 読み込み時の初期状態を保存する文字列（変更検知用） */
 let initialSettingsStr = "";
 
+/**
+ * 現在のUI上の設定値をJSON文字列として取得する
+ */
 const getUIStateString = (): string => {
   return JSON.stringify({
     faviconEnabled: Elements.faviconEnabled.checked,
@@ -387,25 +337,35 @@ const getUIStateString = (): string => {
   });
 };
 
+/**
+ * UIが変更されたかチェックし、保存ボタンの有効/無効を切り替える
+ */
 const checkDirtyState = () => {
-  Elements.saveButton.disabled = getUIStateString() === initialSettingsStr;
+  if (Elements.saveButton) {
+    Elements.saveButton.disabled = getUIStateString() === initialSettingsStr;
+  }
 };
 
 // ─── Load Settings ────────────────────────────────────────────────────────────
+/**
+ * ストレージから設定を読み込み、UIを初期化する
+ */
 const loadSettings = () => {
   chrome.storage.local.get(["language"], (localData) => {
+    let currentLanguage: Language;
     if (localData.language === "ja" || localData.language === "en") {
       currentLanguage = localData.language;
     } else {
       currentLanguage = navigator.language.startsWith("ja") ? "ja" : "en";
     }
+    setLanguage(currentLanguage);
     Elements.languageSelect.value = currentLanguage;
     applyTranslations();
 
     chrome.storage.sync.get(null, (data: SyncData) => {
       Elements.faviconEnabled.checked = data.faviconEnabled ?? true;
 
-      // Clean up container
+      // コンテナをクリア
       Elements.environmentsContainer.innerHTML = "";
       envSections.length = 0;
 
@@ -428,9 +388,13 @@ const loadSettings = () => {
 };
 
 // ─── Save Settings ────────────────────────────────────────────────────────────
+/**
+ * 現在のUI上の設定をストレージに保存する
+ */
 const saveSettings = () => {
   const allRows = envSections.flatMap((s) => s.hostnameManager.getRows());
 
+  // バリデーション状態をリセット
   allRows.forEach(({ input }) => input.classList.remove("is-invalid"));
   Elements.toast.classList.remove("show");
 
@@ -439,6 +403,7 @@ const saveSettings = () => {
   const processedPatterns = new Map<HTMLInputElement, HostnamePattern>();
   const seenPatterns = new Map<string, HTMLInputElement>();
 
+  // 全ての行をチェック
   allRows.forEach(({ input, isRegex }) => {
     const rawValue = input.value.trim();
     if (rawValue === "") return;
@@ -469,6 +434,7 @@ const saveSettings = () => {
       }
     }
 
+    // 重複チェック
     if (isValid && patternKey) {
       if (seenPatterns.has(patternKey)) {
         input.classList.add("is-invalid");
@@ -483,14 +449,15 @@ const saveSettings = () => {
   if (hasInvalid || hasDuplicate) {
     showStatus(
       hasDuplicate ? t("errorDuplicate") : t("errorInvalid"),
-      "red"
+      "red",
+      Elements
     );
     return;
   }
 
+  // 保存用データ作成
   const environments: EnvironmentConfig[] = envSections.map((s) => ({
     id: s.envId,
-    // 名前はDOMのラベルから復元するため、既存データから参照
     name: (document.querySelector(`.env-section[data-env-id="${s.envId}"] .form-label`) as HTMLElement)?.textContent || s.envId,
     badgeText: s.badgeTextInput.value,
     badgeColor: s.badgeColorInput.value,
@@ -508,34 +475,21 @@ const saveSettings = () => {
   };
 
   chrome.storage.sync.set(settings, () => {
-    showStatus(t("saved"), "");
+    showStatus(t("saved"), "", Elements);
     initialSettingsStr = getUIStateString();
     checkDirtyState();
   });
 };
 
-// ─── Toast ────────────────────────────────────────────────────────────────────
-let toastTimeoutId: ReturnType<typeof setTimeout> | null = null;
-const showStatus = (message: string, color: string) => {
-  if (!Elements.toast || !Elements.toastMessage) return;
-  Elements.toastMessage.textContent = message;
-  if (color === "red" || color === "danger") {
-    Elements.toast.classList.remove("text-bg-success");
-    Elements.toast.classList.add("text-bg-danger");
-  } else {
-    Elements.toast.classList.remove("text-bg-danger");
-    Elements.toast.classList.add("text-bg-success");
-  }
-  Elements.toast.classList.add("show");
-  if (toastTimeoutId) clearTimeout(toastTimeoutId);
-  toastTimeoutId = setTimeout(() => Elements.toast.classList.remove("show"), 3000);
-};
-
+// トーストの閉じるボタン
 Elements.toastClose?.addEventListener("click", () =>
   Elements.toast.classList.remove("show")
 );
 
 // ─── Add Environment ─────────────────────────────────────────────────────────
+/**
+ * 新しい環境を追加する
+ */
 Elements.addEnvironmentButton.addEventListener("click", () => {
   const name = prompt(t("newEnvPrompt"));
   if (!name || !name.trim()) return;
@@ -562,9 +516,12 @@ document.addEventListener("change", checkDirtyState);
 document.addEventListener("click", () => setTimeout(checkDirtyState, 0));
 document.addEventListener("dragend", () => setTimeout(checkDirtyState, 0));
 
+/**
+ * 言語切り替えイベント
+ */
 Elements.languageSelect.addEventListener("change", (e) => {
-  const val = (e.target as HTMLSelectElement).value as "en" | "ja";
-  currentLanguage = val;
+  const val = (e.target as HTMLSelectElement).value as Language;
+  setLanguage(val);
   applyTranslations();
   chrome.storage.local.set({ language: val });
   checkDirtyState();
