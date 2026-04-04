@@ -78,18 +78,15 @@ const updateFavicon = () => {
     ctx.textAlign = "center";
     ctx.textBaseline = "bottom";
 
-    // Add a background for the text
-    const textMetrics = ctx.measureText(text);
-    const textHeight = fontSize; // Approximation
-    const padding = 2;
-    const rectHeight = textHeight + padding;
-    const rectY = size - rectHeight;
-    ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
-    ctx.fillRect(0, rectY, size, rectHeight);
+    // Draw text outline (white border)
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.95)";
+    ctx.lineWidth = Math.max(size / 12, 2);
+    ctx.lineJoin = "round";
+    ctx.strokeText(text, size / 2, size - 1);
 
-    // Draw text
+    // Draw text body (environment color)
     ctx.fillStyle = color;
-    ctx.fillText(text, size / 2, size);
+    ctx.fillText(text, size / 2, size - 1);
 
     // Replace favicon
     _lastGeneratedFaviconHref = canvas.toDataURL("image/png");
