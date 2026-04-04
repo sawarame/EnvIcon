@@ -1,91 +1,96 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="UTF-8" />
-    <title>EnvIcon</title>
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-    />
-    <style>
-      body {
-        padding: 2rem;
-        min-width: 600px;
-      }
 
-      .logo-preview {
-        max-width: 150px;
-        max-height: 50px;
-        border: 1px solid #ccc;
-        margin-top: 5px;
-      }
+<head>
+  <meta charset="UTF-8" />
+  <title>EnvIcon</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <style>
+    body {
+      padding: 2rem;
+      min-width: 600px;
+    }
 
-      /* Drag and Drop styles */
-      .drag-handle {
-        cursor: grab;
-        display: flex;
-        align-items: center;
-        padding: 0 10px;
-        background-color: #f8f9fa;
-        border: 1px solid #dee2e6;
-        border-right: none;
-        color: #6c757d;
-        user-select: none;
-      }
-      .drag-handle:active {
-        cursor: grabbing;
-      }
-      .dragging {
-        opacity: 0.5;
-        background-color: #e9ecef;
-      }
-      .drag-over {
-        border-top: 2px solid #0d6efd !important;
-      }
-    </style>
-  </head>
+    .logo-preview {
+      max-width: 150px;
+      max-height: 50px;
+      border: 1px solid #ccc;
+      margin-top: 5px;
+    }
 
-  <body>
-    <div class="container">
-      <h1 class="mb-4"><img src="./images/icon48.png" alt="EnvIcon Logo"> EnvIcon</h1>
+    /* Drag and Drop styles */
+    .drag-handle {
+      cursor: grab;
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      background-color: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-right: none;
+      color: #6c757d;
+      user-select: none;
+    }
 
-      <div class="card">
-        <div class="card-header">Favicon Replacement Settings</div>
-        <div class="card-body">
-          <div class="form-check">
-            <input
-              class="form-check-input"
-              type="checkbox"
-              id="faviconEnabled"
-            />
-            <label class="form-check-label" for="faviconEnabled">
-              Enable environment-specific favicon replacement
-            </label>
-          </div>
-          <div class="mt-3">
-            <label class="form-label">Production Hostnames</label>
-            <div id="prodHostnamesContainer"></div>
-            <button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="addProdHostname">Add Hostname</button>
-          </div>
-          <div class="mt-3">
-            <label class="form-label">Staging Hostnames</label>
-            <div id="stgHostnamesContainer"></div>
-            <button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="addStgHostname">Add Hostname</button>
-          </div>
-          <div class="mt-3">
-            <label class="form-label">Development Hostnames</label>
-            <div id="devHostnamesContainer"></div>
-            <button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="addDevHostname">Add Hostname</button>
-          </div>
-        </div>
-      </div>
+    .drag-handle:active {
+      cursor: grabbing;
+    }
 
-      <hr class="my-4" />
+    .dragging {
+      opacity: 0.5;
+      background-color: #e9ecef;
+    }
 
-      <button id="save" class="btn btn-primary">Save</button>
-      <span id="status" class="ms-2"></span>
+    .drag-over {
+      border-top: 2px solid #0d6efd !important;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h1 class="mb-0"><img src="./images/icon48.png" alt="EnvIcon Logo"> EnvIcon</h1>
+      <select id="languageSelect" class="form-select w-auto">
+        <option value="en">English</option>
+        <option value="ja">日本語</option>
+      </select>
     </div>
 
-    <script src="js/options.js"></script>
-  </body>
+    <div class="card">
+      <div class="card-header" data-i18n="title">Favicon Replacement Settings</div>
+      <div class="card-body">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="faviconEnabled" />
+          <label class="form-check-label" for="faviconEnabled" data-i18n="enableFavicon">
+            Enable environment-specific favicon replacement
+          </label>
+        </div>
+        <div class="mt-3">
+          <label class="form-label" data-i18n="prodHostnames">Production Hostnames</label>
+          <div id="prodHostnamesContainer"></div>
+          <button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="addProdHostname"
+            data-i18n="addHostname">Add Hostname</button>
+        </div>
+        <div class="mt-3">
+          <label class="form-label" data-i18n="stgHostnames">Staging Hostnames</label>
+          <div id="stgHostnamesContainer"></div>
+          <button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="addStgHostname"
+            data-i18n="addHostname">Add Hostname</button>
+        </div>
+        <div class="mt-3">
+          <label class="form-label" data-i18n="devHostnames">Development Hostnames</label>
+          <div id="devHostnamesContainer"></div>
+          <button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="addDevHostname"
+            data-i18n="addHostname">Add Hostname</button>
+        </div>
+      </div>
+    </div>
+
+    <button id="save" class="btn btn-primary" data-i18n="save">Save</button>
+    <span id="status" class="ms-2"></span>
+  </div>
+
+  <script src="js/options.js"></script>
+</body>
+
 </html>

@@ -11,7 +11,9 @@
 - **Chrome Storage (`sync`)**:
   - `faviconEnabled` (boolean): Favicon書き換え機能の全体ON/OFF切り替え。
   - `prodHostnames`, `stgHostnames`, `devHostnames` (array): それぞれPROD / STG / DEV環境の判定ルール（配列）。
-    - 要素のデータ構造（`HostnamePattern` 型）: `{ value: string, isRegex: boolean }`
+- **Chrome Storage (`local`)**:
+  - `language` (string): 全体設定の表示言語（`"en"` または `"ja"`）。ブラウザごとに保存される。
+
 ---
 
 ## 2. 各機能の詳細仕様
@@ -31,6 +33,7 @@
 - **機能・UI仕様:**
   - **全体設定**: 
     - Favicon書き換え機能の全体ON/OFFを切り替えるチェックボックス (`faviconEnabled`) を上部に配置。
+    - 画面右上に**言語切り替えセレクトボックスを持たせ、英語（en）と日本語（ja）を瞬時に切り替え可能**。選択した言語は `chrome.storage.local` に保存され、ブラウザごとのデフォルト言語として復元される。
   - **環境ごとのリスト設定 (PROD, STG, DEV)**:
     - 各環境ごとにホスト名の入力フィールドを複数追加・削除できるリストUIを持つ。
     - **ドラッグ＆ドロップ**: 各入力フィールドの左端にあるハンドル（⋮⋮）を掴んで、リストの並び順を変更可能。

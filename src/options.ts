@@ -6,6 +6,7 @@ import { SyncData, HostnamePattern } from "./types";
 const Elements = {
   faviconEnabled: document.getElementById("faviconEnabled") as HTMLInputElement,
   saveButton: document.getElementById("save") as HTMLButtonElement,
+  languageSelect: document.getElementById("languageSelect") as HTMLSelectElement,
   status: document.getElementById("status") as HTMLSpanElement,
   containers: {
     prod: document.getElementById("prodHostnamesContainer") as HTMLDivElement,
@@ -17,6 +18,49 @@ const Elements = {
     stg: document.getElementById("addStgHostname") as HTMLButtonElement,
     dev: document.getElementById("addDevHostname") as HTMLButtonElement,
   },
+};
+
+const i18nConfig = {
+  en: {
+    title: "Favicon Replacement Settings",
+    enableFavicon: "Enable environment-specific favicon replacement",
+    prodHostnames: "Production Hostnames",
+    stgHostnames: "Staging Hostnames",
+    devHostnames: "Development Hostnames",
+    addHostname: "Add Hostname",
+    remove: "Remove",
+    regex: "Regex",
+    save: "Save",
+    saved: "Sync settings saved.",
+    errorInvalid: "Error: Invalid URL, hostname, or regex found.",
+    errorDuplicate: "Error: Duplicate hostnames or regex patterns found.",
+  },
+  ja: {
+    title: "Favicon書き換え設定",
+    enableFavicon: "環境ごとのFavicon書き換えを有効にする",
+    prodHostnames: "本番環境 (Production) ホスト名",
+    stgHostnames: "ステージング環境 (Staging) ホスト名",
+    devHostnames: "開発環境 (Development) ホスト名",
+    addHostname: "ホスト名を追加",
+    remove: "削除",
+    regex: "正規表現",
+    save: "保存",
+    saved: "設定を保存しました。",
+    errorInvalid: "エラー: 無効なURL、ホスト名、または正規表現が含まれています。",
+    errorDuplicate: "エラー: 重複するホスト名または正規表現パターンが含まれています。",
+  },
+};
+
+let currentLanguage: "en" | "ja" = "en";
+
+const applyTranslations = () => {
+  const dict = i18nConfig[currentLanguage];
+  document.querySelectorAll("[data-i18n]").forEach((el) => {
+    const key = el.getAttribute("data-i18n") as keyof typeof dict;
+    if (dict[key]) {
+      el.textContent = dict[key];
+    }
+  });
 };
 
 /**
@@ -64,10 +108,11 @@ class HostnameListManager {
     
     const label = document.createElement("label");
     label.htmlFor = checkbox.id;
-    label.textContent = "Regex";
+    label.setAttribute("data-i18n", "regex");
+    label.textContent = i18nConfig[currentLanguage].regex;
     label.className = "ms-2 small mb-0";
     label.style.cursor = "pointer";
-    label.title = "Use Regular Expression";
+    label.title = i18nConfig[currentLanguage].regex;
 
     checkboxDiv.appendChild(checkbox);
     checkboxDiv.appendChild(label);
@@ -86,7 +131,8 @@ class HostnameListManager {
     const removeBtn = document.createElement("button");
     removeBtn.className = "btn btn-outline-danger";
     removeBtn.type = "button";
-    removeBtn.textContent = "Remove";
+    removeBtn.setAttribute("data-i18n", "remove");
+    removeBtn.textContent = i18nConfig[currentLanguage].remove;
     removeBtn.onclick = () => {
       if (this.container.children.length > 1) {
         div.remove();
@@ -249,18 +295,28 @@ const checkDirtyState = () => {
  * Loads settings from chrome storage and populates the UI.
  */
 const loadSettings = () => {
-  chrome.storage.sync.get(
-    ["faviconEnabled", "prodHostnames", "stgHostnames", "devHostnames"],
-    (data: SyncData) => {
-      Elements.faviconEnabled.checked = data.faviconEnabled ?? true;
-      managers.prod.render(data.prodHostnames);
-      managers.stg.render(data.stgHostnames);
-      managers.dev.render(data.devHostnames);
-
-      initialSettingsStr = getUIStateString();
-      checkDirtyState();
+  chrome.storage.local.get(["language"], (localData) => {
+    if (localData.language === "ja" || localData.language === "en") {
+      currentLanguage = localData.language;
+    } else {
+      currentLanguage = navigator.language.startsWith("ja") ? "ja" : "en";
     }
-  );
+    Elements.languageSelect.value = currentLanguage;
+    applyTranslations();
+
+    chrome.storage.sync.get(
+      ["faviconEnabled", "prodHostnames", "stgHostnames", "devHostnames"],
+      (data: SyncData) => {
+        Elements.faviconEnabled.checked = data.faviconEnabled ?? true;
+        managers.prod.render(data.prodHostnames);
+        managers.stg.render(data.stgHostnames);
+        managers.dev.render(data.devHostnames);
+
+        initialSettingsStr = getUIStateString();
+        checkDirtyState();
+      }
+    );
+  });
 };
 
 /**
@@ -332,8 +388,8 @@ const saveSettings = () => {
 
   if (hasInvalid || hasDuplicate) {
     const msg = hasDuplicate
-      ? "Error: Duplicate hostnames or regex patterns found."
-      : "Error: Invalid URL, hostname, or regex found.";
+      ? i18nConfig[currentLanguage].errorDuplicate
+      : i18nConfig[currentLanguage].errorInvalid;
     showStatus(msg, "red");
     return;
   }
@@ -347,7 +403,7 @@ const saveSettings = () => {
   };
 
   chrome.storage.sync.set(settings, () => {
-    showStatus("Sync settings saved.", "");
+    showStatus(i18nConfig[currentLanguage].saved, "");
     initialSettingsStr = getUIStateString();
     checkDirtyState();
     setTimeout(() => (Elements.status.textContent = ""), 2000);
@@ -383,3 +439,11 @@ document.addEventListener("input", checkDirtyState);
 document.addEventListener("change", checkDirtyState);
 document.addEventListener("click", () => setTimeout(checkDirtyState, 0));
 document.addEventListener("dragend", () => setTimeout(checkDirtyState, 0));
+
+Elements.languageSelect.addEventListener("change", (e) => {
+  const val = (e.target as HTMLSelectElement).value as "en" | "ja";
+  currentLanguage = val;
+  applyTranslations();
+  chrome.storage.local.set({ language: val });
+  checkDirtyState();
+});
