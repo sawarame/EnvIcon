@@ -1,4 +1,4 @@
-import { SyncData, HostnamePattern } from "../types";
+import { SyncData, HostnamePattern, EnvironmentConfig } from "../types";
 
 let _syncData: SyncData = {};
 let _lastGeneratedFaviconHref = "";
@@ -11,7 +11,7 @@ const getFavicon = (): HTMLLinkElement | null => {
 };
 
 /**
- * Checks if the current hostname matches any of the given patterns.
+ * 現在のホスト名がパターン群のいずれかに一致するか検証する。
  */
 const isMatch = (
   patterns: (string | HostnamePattern)[] | undefined,
@@ -19,19 +19,36 @@ const isMatch = (
 ): boolean => {
   if (!patterns) return false;
   return patterns.some((p) => {
-    if (typeof p === "string") {
-      return p === currentHostname;
-    }
+    if (typeof p === "string") return p === currentHostname;
     if (p.isRegex) {
       try {
-        const re = new RegExp(p.value);
-        return re.test(currentHostname);
+        return new RegExp(p.value).test(currentHostname);
       } catch {
         return false;
       }
     }
     return p.value === currentHostname;
   });
+};
+
+/**
+ * 現在のホスト名に一致する環境設定を返す。
+ * 新フォーマット(environments)を優先し、ない場合は旧フォーマットにフォールバック。
+ */
+const findMatchingEnv = (
+  currentHostname: string
+): { text: string; color: string; outlineColor: string } | null => {
+  if (!_syncData.environments) return null;
+  for (const env of _syncData.environments) {
+    if (isMatch(env.hostnames, currentHostname)) {
+      return {
+        text: env.badgeText || env.id,
+        color: env.badgeColor || "#888888",
+        outlineColor: env.badgeOutlineColor || "#ffffff",
+      };
+    }
+  }
+  return null;
 };
 
 const updateFavicon = () => {
@@ -43,54 +60,35 @@ const updateFavicon = () => {
 
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
-  if (!ctx) {
-    return;
-  }
+  if (!ctx) return;
+
   const img = new Image();
   img.crossOrigin = "Anonymous";
 
   img.onload = () => {
-    const size = img.width; // Assume square
+    const size = img.width;
     canvas.width = size;
     canvas.height = size;
     ctx.drawImage(img, 0, 0, size, size);
 
-    let text: string, color: string, outlineColor: string;
-    const currentHostname = window.location.hostname;
+    const match = findMatchingEnv(window.location.hostname);
+    if (!match) return;
 
-    if (isMatch(_syncData.prodHostnames, currentHostname)) {
-      text = _syncData.prodBadgeText || "prod";
-      color = _syncData.prodBadgeColor || "#FF0000";
-      outlineColor = _syncData.prodBadgeOutlineColor || "#FFFFFF";
-    } else if (isMatch(_syncData.stgHostnames, currentHostname)) {
-      text = _syncData.stgBadgeText || "stg";
-      color = _syncData.stgBadgeColor || "#0000FF";
-      outlineColor = _syncData.stgBadgeOutlineColor || "#FFFFFF";
-    } else if (isMatch(_syncData.devHostnames, currentHostname)) {
-      text = _syncData.devBadgeText || "dev";
-      color = _syncData.devBadgeColor || "#008000";
-      outlineColor = _syncData.devBadgeOutlineColor || "#FFFFFF";
-    } else {
-      return;
-    }
+    const { text, color, outlineColor } = match;
 
-    // Text styling
-    const fontSize = Math.max(Math.round(size / 2.5), 6); // Dynamic font size
+    const fontSize = Math.max(Math.round(size / 2.5), 6);
     ctx.font = `bold ${fontSize}px "Arial"`;
     ctx.textAlign = "center";
     ctx.textBaseline = "bottom";
 
-    // Draw text outline (white border)
     ctx.strokeStyle = outlineColor;
     ctx.lineWidth = Math.max(size / 12, 2);
     ctx.lineJoin = "round";
     ctx.strokeText(text, size / 2, size - 1);
 
-    // Draw text body (environment color)
     ctx.fillStyle = color;
     ctx.fillText(text, size / 2, size - 1);
 
-    // Replace favicon
     _lastGeneratedFaviconHref = canvas.toDataURL("image/png");
     favicon.href = _lastGeneratedFaviconHref;
   };
@@ -131,7 +129,6 @@ const observer = new MutationObserver((mutationsList: MutationRecord[]) => {
         target instanceof HTMLLinkElement &&
         (target.rel === "icon" || target.rel === "shortcut icon")
       ) {
-        // SPAなどで書き換えられた場合のみ再発火させる（自身の書き換えによるループを防ぐ）
         if (target.href !== _lastGeneratedFaviconHref) {
           updateFavicon();
           return;
@@ -141,18 +138,14 @@ const observer = new MutationObserver((mutationsList: MutationRecord[]) => {
   }
 });
 
-export const initializeFaviconChangerFeature = (
-  syncData: SyncData
-) => {
+export const initializeFaviconChangerFeature = (syncData: SyncData) => {
   _syncData = syncData;
 
-  // Handle cases where the favicon already exists at script injection time
   if (getFavicon()) {
     window.addEventListener("load", updateFavicon);
     updateFavicon();
   }
 
-  // Observe the head for dynamically added favicons
   const head = document.querySelector("head");
   if (head) {
     observer.observe(head, {

@@ -3,19 +3,17 @@ export interface HostnamePattern {
   isRegex: boolean;
 }
 
+export interface EnvironmentConfig {
+  id: string;              // "prod" | "stg" | "dev" | "custom_<timestamp>"
+  name: string;            // 表示名 (例: "Production", "QA")
+  badgeText: string;
+  badgeColor: string;
+  badgeOutlineColor: string;
+  hostnames: HostnamePattern[];
+  isDeletable: boolean;    // trueならユーザーが削除可能
+}
+
 export interface SyncData {
   faviconEnabled?: boolean;
-  prodHostnames?: (string | HostnamePattern)[];
-  stgHostnames?: (string | HostnamePattern)[];
-  devHostnames?: (string | HostnamePattern)[];
-
-  prodBadgeText?: string;
-  prodBadgeColor?: string;
-  prodBadgeOutlineColor?: string;
-  stgBadgeText?: string;
-  stgBadgeColor?: string;
-  stgBadgeOutlineColor?: string;
-  devBadgeText?: string;
-  devBadgeColor?: string;
-  devBadgeOutlineColor?: string;
+  environments?: EnvironmentConfig[];
 }
