@@ -23,11 +23,14 @@ const Elements = {
  * Manages a list of hostname inputs in the UI.
  */
 class HostnameListManager {
+  private draggingElement: HTMLElement | null = null;
+
   constructor(
     private container: HTMLDivElement,
     private addButton: HTMLButtonElement
   ) {
     this.addButton.addEventListener("click", () => this.addInput());
+    this.setupContainerEvents();
   }
 
   /**
@@ -40,6 +43,13 @@ class HostnameListManager {
 
     const div = document.createElement("div");
     div.className = "input-group mb-2";
+    div.draggable = true;
+
+    // Drag Handle
+    const handle = document.createElement("div");
+    handle.className = "drag-handle";
+    handle.innerHTML = "⋮⋮"; // Vertical dots for handle
+    handle.title = "Drag to reorder";
 
     // Regex Checkbox
     const checkboxDiv = document.createElement("div");
@@ -84,11 +94,66 @@ class HostnameListManager {
       }
     };
 
+    div.appendChild(handle);
     div.appendChild(checkboxDiv);
     div.appendChild(input);
     div.appendChild(removeBtn);
+
+    // Bind Drag Events
+    this.bindDragEvents(div);
+
     this.container.appendChild(div);
     this.updateRemoveButtonsState();
+  }
+
+  private bindDragEvents(el: HTMLElement) {
+    el.addEventListener("dragstart", (e) => {
+      this.draggingElement = el;
+      el.classList.add("dragging");
+      if (e.dataTransfer) {
+        e.dataTransfer.effectAllowed = "move";
+      }
+    });
+
+    el.addEventListener("dragend", () => {
+      this.draggingElement = null;
+      el.classList.remove("dragging");
+      this.container.querySelectorAll(".drag-over").forEach(node => node.classList.remove("drag-over"));
+    });
+
+    el.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      if (this.draggingElement && this.draggingElement !== el) {
+        el.classList.add("drag-over");
+      }
+    });
+
+    el.addEventListener("dragleave", () => {
+      el.classList.remove("drag-over");
+    });
+
+    el.addEventListener("drop", (e) => {
+      e.preventDefault();
+      el.classList.remove("drag-over");
+      if (this.draggingElement && this.draggingElement !== el) {
+        const children = Array.from(this.container.children);
+        const draggingIndex = children.indexOf(this.draggingElement);
+        const targetIndex = children.indexOf(el);
+
+        if (draggingIndex < targetIndex) {
+          el.after(this.draggingElement);
+        } else {
+          el.before(this.draggingElement);
+        }
+      }
+    });
+  }
+
+  private setupContainerEvents() {
+    // Basic drop handling on container to allow dropping at the end
+    this.container.addEventListener("dragover", (e) => {
+      e.preventDefault();
+    });
   }
 
   /**
