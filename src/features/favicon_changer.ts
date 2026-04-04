@@ -3,10 +3,17 @@ import { SyncData, HostnamePattern, EnvironmentConfig } from "../types";
 let _syncData: SyncData = {};
 let _lastGeneratedFaviconHref = "";
 
-const getFavicon = (): HTMLLinkElement | null => {
-  return (
-    document.querySelector<HTMLLinkElement>("link[rel='icon']") ||
-    document.querySelector<HTMLLinkElement>("link[rel='shortcut icon']")
+const FAVICON_SELECTOR = "link[rel*='icon']";
+
+/**
+ * 全てのファビコン関連のlink要素を取得する。
+ */
+const getFavicons = (): HTMLLinkElement[] => {
+  return Array.from(document.querySelectorAll<HTMLLinkElement>(FAVICON_SELECTOR)).filter(
+    (link) => {
+      const rel = link.rel.toLowerCase();
+      return rel.includes("icon");
+    }
   );
 };
 
@@ -33,7 +40,6 @@ const isMatch = (
 
 /**
  * 現在のホスト名に一致する環境設定を返す。
- * 新フォーマット(environments)を優先し、ない場合は旧フォーマットにフォールバック。
  */
 const findMatchingEnv = (
   currentHostname: string
@@ -51,11 +57,27 @@ const findMatchingEnv = (
   return null;
 };
 
-const updateFavicon = () => {
-  const favicon = getFavicon();
-  if (!favicon) {
-    console.log("Favicon not found.");
-    return;
+/**
+ * 新しいファビコン要素を作成・または更新する。
+ */
+const updateFavicon = async () => {
+  const match = findMatchingEnv(window.location.hostname);
+  if (!match) return;
+
+  const favicons = getFavicons();
+  let originalHref = "";
+  
+  // 既存のファビコンを無効化し、最大のサイズと思われるもののURLを特定する
+  favicons.forEach(fav => {
+    if (fav.href === _lastGeneratedFaviconHref) return;
+    originalHref = fav.href;
+    fav.setAttribute("rel", "icon-disabled"); // 無効化
+    fav.disabled = true;
+  });
+
+  // 既存のタグがない場合、デフォルトのfavicon.icoを試す
+  if (!originalHref) {
+    originalHref = "/favicon.ico";
   }
 
   const canvas = document.createElement("canvas");
@@ -63,96 +85,95 @@ const updateFavicon = () => {
   if (!ctx) return;
 
   const img = new Image();
-  img.crossOrigin = "Anonymous";
+  img.crossOrigin = "anonymous";
 
-  img.onload = () => {
-    const size = img.width;
+  const drawAndApply = () => {
+    const size = Math.max(img.width || 32, 32);
     canvas.width = size;
     canvas.height = size;
-    ctx.drawImage(img, 0, 0, size, size);
-
-    const match = findMatchingEnv(window.location.hostname);
-    if (!match) return;
+    
+    // 背景画像を描画（読み込み失敗時は白背景）
+    if (img.width > 0) {
+      ctx.drawImage(img, 0, 0, size, size);
+    } else {
+      ctx.fillStyle = "white";
+      ctx.fillRect(0, 0, size, size);
+    }
 
     const { text, color, outlineColor } = match;
-
-    const fontSize = Math.max(Math.round(size / 2.5), 6);
-    ctx.font = `bold ${fontSize}px "Arial"`;
+    const fontSize = Math.max(Math.round(size / 2.5), 12);
+    ctx.font = `bold ${fontSize}px sans-serif`;
     ctx.textAlign = "center";
-    ctx.textBaseline = "bottom";
+    ctx.textBaseline = "alphabetic";
 
     ctx.strokeStyle = outlineColor;
-    ctx.lineWidth = Math.max(size / 12, 2);
+    ctx.lineWidth = Math.max(size / 10, 2);
     ctx.lineJoin = "round";
-    ctx.strokeText(text, size / 2, size - 1);
+    ctx.strokeText(text, size / 2, size - 2);
 
     ctx.fillStyle = color;
-    ctx.fillText(text, size / 2, size - 1);
+    ctx.fillText(text, size / 2, size - 2);
 
-    _lastGeneratedFaviconHref = canvas.toDataURL("image/png");
-    favicon.href = _lastGeneratedFaviconHref;
+    canvas.toBlob((blob) => {
+      if (blob) {
+        const newHref = URL.createObjectURL(blob);
+        _lastGeneratedFaviconHref = newHref;
+
+        // 新しいlink要素を作成（または既存のものを更新）
+        let newFav = document.getElementById("env-icon-generated") as HTMLLinkElement;
+        if (!newFav) {
+          newFav = document.createElement("link");
+          newFav.id = "env-icon-generated";
+          newFav.rel = "icon";
+          document.head.appendChild(newFav);
+        }
+        newFav.href = newHref;
+      }
+    }, "image/png");
   };
 
-  img.onerror = (e) => {
-    console.error("Error loading favicon image:", e);
-  };
+  img.onload = drawAndApply;
+  img.onerror = drawAndApply; // 画像なしでも描画を試みる
 
-  fetch(favicon.href, { cache: "no-cache" })
-    .then((response) => response.blob())
-    .then((blob) => {
-      img.src = URL.createObjectURL(blob);
-    })
-    .catch((e) => {
-      console.error("Fetching favicon failed:", e);
-      img.src = favicon.href;
-    });
+  // Background Proxy経由で画像を取得（CORS回避）
+  chrome.runtime.sendMessage({ type: "FETCH_IMAGE", url: originalHref }, (response) => {
+    if (response && response.dataUrl) {
+      img.src = response.dataUrl;
+    } else {
+      // プロキシ経由でも失敗した場合は直接試す
+      img.src = originalHref;
+    }
+  });
 };
 
 const observer = new MutationObserver((mutationsList: MutationRecord[]) => {
+  let shouldUpdate = false;
   for (const mutation of mutationsList) {
     if (mutation.type === "childList") {
-      const faviconNode = Array.from(mutation.addedNodes).find(
-        (node) =>
-          node instanceof HTMLLinkElement &&
-          (node.rel === "icon" || node.rel === "shortcut icon")
-      );
-      if (faviconNode) {
-        updateFavicon();
-        return;
-      }
-    } else if (
-      mutation.type === "attributes" &&
-      mutation.attributeName === "href"
-    ) {
-      const target = mutation.target;
-      if (
-        target instanceof HTMLLinkElement &&
-        (target.rel === "icon" || target.rel === "shortcut icon")
-      ) {
-        if (target.href !== _lastGeneratedFaviconHref) {
-          updateFavicon();
-          return;
-        }
+      const addedNodes = Array.from(mutation.addedNodes);
+      if (addedNodes.some(node => node instanceof HTMLLinkElement && node.rel.includes("icon") && node.id !== "env-icon-generated")) {
+        shouldUpdate = true;
+        break;
       }
     }
+  }
+  if (shouldUpdate) {
+    updateFavicon();
   }
 });
 
 export const initializeFaviconChangerFeature = (syncData: SyncData) => {
   _syncData = syncData;
 
-  if (getFavicon()) {
-    window.addEventListener("load", updateFavicon);
-    updateFavicon();
-  }
+  // 初期実行
+  updateFavicon();
 
-  const head = document.querySelector("head");
-  if (head) {
-    observer.observe(head, {
+  // 監視開始（head内の変更を監視）
+  const target = document.querySelector("head");
+  if (target) {
+    observer.observe(target, {
       childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: ["href"],
+      subtree: true
     });
   }
 };
