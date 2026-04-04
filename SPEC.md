@@ -23,8 +23,8 @@
   2. Storageから現在の設定情報を取得し、現在のURLとマッチするか判定する。
   3. マッチした場合、元のFavicon画像をCanvas等で読み込み、ラベルや色を重ねてData URIを生成し、`<link rel="icon">` や `<link rel="shortcut icon">` を更新する。
 - **エッジケース（考慮事項）:**
-  - SPA（Single Page Application）でのDOM遷移時にFaviconが元に戻ってしまう問題への対応策。
   - 元のページのFaviconが存在しない場合のフォールバックの挙動。
+  - （※SPAでのDOM遷移や属性変更によるFaviconリセットには、`MutationObserver` を用いた `href` 属性の変更検知によって対応済）
 
 ### 2.2 オプション設定画面 (`src/options.ts`, `EnvIcon/options.html`)
 - **概要:** ユーザーが対象環境のホスト名や正規表現パターンを設定する画面。Bootstrap 5ベースで構築されている。

@@ -3,6 +3,7 @@ import { HostnamePattern } from "../types";
 let _prodHostnames: (string | HostnamePattern)[] = [];
 let _stgHostnames: (string | HostnamePattern)[] = [];
 let _devHostnames: (string | HostnamePattern)[] = [];
+let _lastGeneratedFaviconHref = "";
 
 const getFavicon = (): HTMLLinkElement | null => {
   return (
@@ -91,7 +92,8 @@ const updateFavicon = () => {
     ctx.fillText(text, size / 2, size);
 
     // Replace favicon
-    favicon.href = canvas.toDataURL("image/png");
+    _lastGeneratedFaviconHref = canvas.toDataURL("image/png");
+    favicon.href = _lastGeneratedFaviconHref;
   };
 
   img.onerror = (e) => {
@@ -121,6 +123,21 @@ const observer = new MutationObserver((mutationsList: MutationRecord[]) => {
         updateFavicon();
         return;
       }
+    } else if (
+      mutation.type === "attributes" &&
+      mutation.attributeName === "href"
+    ) {
+      const target = mutation.target;
+      if (
+        target instanceof HTMLLinkElement &&
+        (target.rel === "icon" || target.rel === "shortcut icon")
+      ) {
+        // SPAなどで書き換えられた場合のみ再発火させる（自身の書き換えによるループを防ぐ）
+        if (target.href !== _lastGeneratedFaviconHref) {
+          updateFavicon();
+          return;
+        }
+      }
     }
   }
 });
@@ -146,6 +163,8 @@ export const initializeFaviconChangerFeature = (
     observer.observe(head, {
       childList: true,
       subtree: true,
+      attributes: true,
+      attributeFilter: ["href"],
     });
   }
 };
