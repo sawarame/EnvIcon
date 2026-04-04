@@ -190,6 +190,8 @@ const renderEnvironmentSection = (
   section.className = "mt-3 env-section";
   section.dataset.envId = env.id;
 
+  section.appendChild(document.createElement("hr"));
+
   // ヘッダー（環境名と削除ボタン）
   const headerDiv = document.createElement("div");
   headerDiv.className = "d-flex align-items-center mb-1";
@@ -295,10 +297,6 @@ const renderEnvironmentSection = (
   section.appendChild(hostnameContainer);
   section.appendChild(addHostnameBtn);
 
-  // 前に要素がある場合は区切り線を入れる
-  if (container.children.length > 0) {
-    container.appendChild(document.createElement("hr"));
-  }
   container.appendChild(section);
 
   const manager = new HostnameListManager(
