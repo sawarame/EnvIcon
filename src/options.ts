@@ -45,7 +45,8 @@ class HostnameListManager {
     const handle = document.createElement("div");
     handle.className = "drag-handle";
     handle.innerHTML = "⋮⋮";
-    handle.title = "Drag to reorder";
+    handle.title = t("dragHandle");
+    handle.dataset.i18nTitle = "dragHandle";
 
     const checkboxDiv = document.createElement("div");
     checkboxDiv.className = "input-group-text";
@@ -53,14 +54,17 @@ class HostnameListManager {
     checkbox.type = "checkbox";
     checkbox.id = `regex-${Math.random().toString(36).substr(2, 9)}`;
     checkbox.className = "form-check-input mt-0 is-regex";
-    checkbox.title = "Use Regular Expression";
+    checkbox.title = t("useRegex");
+    checkbox.dataset.i18nTitle = "useRegex";
     checkbox.checked = isRegex;
     const label = document.createElement("label");
     label.htmlFor = checkbox.id;
     label.className = "ms-2 small mb-0";
     label.style.cursor = "pointer";
     label.textContent = t("regex");
-    label.title = t("regex");
+    label.dataset.i18n = "regex";
+    label.title = t("useRegex");
+    label.dataset.i18nTitle = "useRegex";
     checkboxDiv.appendChild(checkbox);
     checkboxDiv.appendChild(label);
 
@@ -68,15 +72,18 @@ class HostnameListManager {
     input.type = "text";
     input.className = "form-control hostname-input";
     input.value = value;
-    input.placeholder = isRegex ? "e.g. ^.*\\.local$" : "example.com";
+    input.placeholder = isRegex ? t("placeholderRegex") : t("placeholderHostname");
+    input.dataset.i18nPlaceholder = isRegex ? "placeholderRegex" : "placeholderHostname";
     checkbox.onchange = () => {
-      input.placeholder = checkbox.checked ? "e.g. ^.*\\.local$" : "example.com";
+      input.placeholder = checkbox.checked ? t("placeholderRegex") : t("placeholderHostname");
+      input.dataset.i18nPlaceholder = checkbox.checked ? "placeholderRegex" : "placeholderHostname";
     };
 
     const removeBtn = document.createElement("button");
     removeBtn.className = "btn btn-outline-danger";
     removeBtn.type = "button";
     removeBtn.textContent = t("remove");
+    removeBtn.dataset.i18n = "remove";
     removeBtn.onclick = () => {
       if (this.container.children.length > 1) {
         div.remove();
@@ -311,8 +318,6 @@ const renderEnvironmentSection = (
   addHostnameBtn.type = "button";
   addHostnameBtn.className = "btn btn-outline-secondary btn-circle";
   addHostnameBtn.innerHTML = '<span style="font-size: 1.5rem; line-height: 1;">+</span>';
-  addHostnameBtn.title = t("addHostname");
-  addHostnameBtn.dataset.i18n = "addHostname";
 
   btnContainer.appendChild(addHostnameBtn);
 

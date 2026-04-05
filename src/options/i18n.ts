@@ -5,7 +5,6 @@ export const i18nConfig = {
   en: {
     title: "Favicon Replacement Settings",
     enableFavicon: "Enable environment-specific favicon replacement",
-    addHostname: "Add Hostname",
     remove: "Remove",
     regex: "Regex",
     save: "Save",
@@ -18,6 +17,10 @@ export const i18nConfig = {
     resetDefault: "Reset to default",
     addEnvironment: "+ Add Environment",
     deleteEnvironment: "Delete",
+    dragHandle: "Drag to reorder",
+    useRegex: "Use Regular Expression",
+    placeholderHostname: "example.com",
+    placeholderRegex: "e.g. ^.*\\.local$",
     newEnvPrompt: "Enter a name for the new environment:",
     newEnvCancel: "Cancelled: no environment name was entered.",
     ProductionName: "Production Environment",
@@ -27,7 +30,6 @@ export const i18nConfig = {
   ja: {
     title: "Favicon書き換え設定",
     enableFavicon: "環境ごとのFavicon書き換えを有効にする",
-    addHostname: "ホスト名を追加",
     remove: "削除",
     regex: "正規表現",
     save: "保存",
@@ -40,6 +42,10 @@ export const i18nConfig = {
     resetDefault: "デフォルトに戻す",
     addEnvironment: "+ 環境追加",
     deleteEnvironment: "環境を削除",
+    dragHandle: "ドラッグして順序を入れ替え",
+    useRegex: "正規表現を使用する",
+    placeholderHostname: "example.com",
+    placeholderRegex: "例: ^.*\\.local$",
     newEnvPrompt: "新しい環境名を入力してください:",
     newEnvCancel: "キャンセルされました。",
     ProductionName: "本番環境（Production）",
@@ -71,12 +77,26 @@ export const t = (key: keyof typeof i18nConfig["en"]): string =>
   i18nConfig[currentLanguage][key];
 
 /**
- * HTML内の data-i18n 属性を持つ要素に対して翻訳を適用する
+ * HTML内の data-i18n-* 属性を持つ要素に対して翻訳を適用する
  */
 export const applyTranslations = () => {
   const dict = i18nConfig[currentLanguage];
+
+  // textContent の更新
   document.querySelectorAll("[data-i18n]").forEach((el) => {
     const key = el.getAttribute("data-i18n") as keyof typeof dict;
     if (dict[key]) el.textContent = dict[key];
+  });
+
+  // title 属性の更新
+  document.querySelectorAll("[data-i18n-title]").forEach((el) => {
+    const key = el.getAttribute("data-i18n-title") as keyof typeof dict;
+    if (dict[key]) (el as HTMLElement).title = dict[key];
+  });
+
+  // placeholder 属性の更新
+  document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+    const key = el.getAttribute("data-i18n-placeholder") as keyof typeof dict;
+    if (dict[key]) (el as HTMLInputElement).placeholder = dict[key];
   });
 };
