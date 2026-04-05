@@ -229,6 +229,7 @@ const renderEnvironmentSection = (
     deleteBtn.className = "btn btn-outline-danger btn-circle-sm ms-auto";
     deleteBtn.innerHTML = "&times;";
     deleteBtn.title = t("deleteEnvironment");
+    deleteBtn.dataset.i18nTitle = "deleteEnvironment";
     deleteBtn.addEventListener("click", () => {
       const idx = envSections.findIndex((s) => s.envId === env.id);
       if (idx !== -1) envSections.splice(idx, 1);
@@ -418,6 +419,9 @@ const loadSettings = () => {
         renderEnvironmentSection(env, Elements.environmentsContainer)
       );
 
+      // 動的に生成された要素にも翻訳を適用
+      applyTranslations();
+
       initialSettingsStr = getUIStateString();
       checkDirtyState();
     });
@@ -545,14 +549,12 @@ Elements.toastClose?.addEventListener("click", () =>
  * 新しい環境を追加する
  */
 Elements.addEnvironmentButton.addEventListener("click", () => {
-  const name = prompt(t("newEnvPrompt"));
-  if (!name || !name.trim()) return;
-  const trimmed = name.trim();
+  const defaultName = t("newEnvDefaultName");
   const id = `custom_${Date.now()}`;
   const newEnv: EnvironmentConfig = {
     id,
-    name: trimmed.substring(0, 50),
-    badgeText: trimmed.substring(0, 4).toLowerCase(),
+    name: defaultName,
+    badgeText: defaultName.substring(0, 4).toLowerCase(),
     badgeColor: "#888888",
     badgeOutlineColor: "#ffffff",
     hostnames: [],

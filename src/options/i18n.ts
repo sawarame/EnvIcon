@@ -23,6 +23,7 @@ export const i18nConfig = {
     placeholderRegex: "e.g. ^.*\\.local$",
     newEnvPrompt: "Enter a name for the new environment:",
     newEnvCancel: "Cancelled: no environment name was entered.",
+    newEnvDefaultName: "New Environment",
     ProductionName: "Production Environment",
     StagingName: "Staging Environment",
     DevelopmentName: "Development Environment",
@@ -44,10 +45,11 @@ export const i18nConfig = {
     deleteEnvironment: "環境を削除",
     dragHandle: "ドラッグして順序を入れ替え",
     useRegex: "正規表現を使用する",
-    placeholderHostname: "example.com",
+    placeholderHostname: "例: example.com",
     placeholderRegex: "例: ^.*\\.local$",
     newEnvPrompt: "新しい環境名を入力してください:",
     newEnvCancel: "キャンセルされました。",
+    newEnvDefaultName: "新規環境",
     ProductionName: "本番環境（Production）",
     StagingName: "ステージング環境（Staging）",
     DevelopmentName: "開発環境（Development）",
@@ -84,19 +86,19 @@ export const applyTranslations = () => {
 
   // textContent の更新
   document.querySelectorAll("[data-i18n]").forEach((el) => {
-    const key = el.getAttribute("data-i18n") as keyof typeof dict;
+    const key = el.getAttribute("data-i18n") as keyof typeof i18nConfig["en"];
     if (dict[key]) el.textContent = dict[key];
   });
 
   // title 属性の更新
   document.querySelectorAll("[data-i18n-title]").forEach((el) => {
-    const key = el.getAttribute("data-i18n-title") as keyof typeof dict;
+    const key = el.getAttribute("data-i18n-title") as keyof typeof i18nConfig["en"];
     if (dict[key]) (el as HTMLElement).title = dict[key];
   });
 
   // placeholder 属性の更新
   document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
-    const key = el.getAttribute("data-i18n-placeholder") as keyof typeof dict;
+    const key = el.getAttribute("data-i18n-placeholder") as keyof typeof i18nConfig["en"];
     if (dict[key]) (el as HTMLInputElement).placeholder = dict[key];
   });
 };
