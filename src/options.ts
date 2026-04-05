@@ -562,6 +562,12 @@ Elements.addEnvironmentButton.addEventListener("click", () => {
   };
   renderEnvironmentSection(newEnv, Elements.environmentsContainer);
   checkDirtyState();
+
+  // 追加後に一番下までスムーズにスクロール
+  window.scrollTo({
+    top: document.body.scrollHeight,
+    behavior: "smooth",
+  });
 });
 
 // ─── Event Listeners ──────────────────────────────────────────────────────────
