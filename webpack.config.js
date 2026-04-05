@@ -1,4 +1,5 @@
 const path = require('path');
+const { VueLoaderPlugin } = require('vue-loader');
 
 module.exports = {
   mode: 'production',
@@ -12,22 +13,28 @@ module.exports = {
     filename: '[name].js',
   },
   resolve: {
-    extensions: ['.ts', '.js'],
+    extensions: ['.ts', '.js', '.vue'],
   },
   module: {
     rules: [
       {
+        test: /\.vue$/,
+        loader: 'vue-loader'
+      },
+      {
         test: /\.ts$/,
-        use: {
-          loader: 'ts-loader',
-          options: {
-            compilerOptions: {
-              noEmit: false,
-            },
+        loader: 'ts-loader',
+        options: {
+          appendTsSuffixTo: [/\.vue$/],
+          compilerOptions: {
+            noEmit: false,
           },
         },
         exclude: /node_modules/,
       },
     ],
   },
+  plugins: [
+    new VueLoaderPlugin()
+  ]
 };

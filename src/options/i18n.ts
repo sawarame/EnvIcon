@@ -1,3 +1,5 @@
+import { ref } from 'vue';
+
 /**
  * 言語ごとの翻訳設定
  */
@@ -60,14 +62,14 @@ export const i18nConfig = {
 export type Language = "en" | "ja";
 
 /** 現在選択されている言語 */
-export let currentLanguage: Language = "en";
+export const currentLanguage = ref<Language>("en");
 
 /**
  * 現在の言語を設定する
  * @param lang 設定する言語 ("en" | "ja")
  */
 export const setLanguage = (lang: Language) => {
-  currentLanguage = lang;
+  currentLanguage.value = lang;
 };
 
 /**
@@ -76,29 +78,4 @@ export const setLanguage = (lang: Language) => {
  * @returns 翻訳された文字列
  */
 export const t = (key: keyof typeof i18nConfig["en"]): string =>
-  i18nConfig[currentLanguage][key];
-
-/**
- * HTML内の data-i18n-* 属性を持つ要素に対して翻訳を適用する
- */
-export const applyTranslations = () => {
-  const dict = i18nConfig[currentLanguage];
-
-  // textContent の更新
-  document.querySelectorAll("[data-i18n]").forEach((el) => {
-    const key = el.getAttribute("data-i18n") as keyof typeof i18nConfig["en"];
-    if (dict[key]) el.textContent = dict[key];
-  });
-
-  // title 属性の更新
-  document.querySelectorAll("[data-i18n-title]").forEach((el) => {
-    const key = el.getAttribute("data-i18n-title") as keyof typeof i18nConfig["en"];
-    if (dict[key]) (el as HTMLElement).title = dict[key];
-  });
-
-  // placeholder 属性の更新
-  document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
-    const key = el.getAttribute("data-i18n-placeholder") as keyof typeof i18nConfig["en"];
-    if (dict[key]) (el as HTMLInputElement).placeholder = dict[key];
-  });
-};
+  i18nConfig[currentLanguage.value][key] || key;

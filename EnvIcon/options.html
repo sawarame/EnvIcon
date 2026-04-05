@@ -90,51 +90,7 @@
 </head>
 
 <body>
-  <div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h1 class="mb-0"><img src="./images/icon48.png" alt="EnvIcon Logo"> EnvIcon</h1>
-      <select id="languageSelect" class="form-select w-auto">
-        <option value="en">English</option>
-        <option value="ja">日本語</option>
-      </select>
-    </div>
-
-    <div class="mb-4">
-      <h5 data-i18n="title" class="mb-3">Favicon Replacement Settings</h5>
-      <div class="form-check form-switch mb-3">
-        <input class="form-check-input" type="checkbox" id="faviconEnabled" />
-        <label class="form-check-label fw-bold" for="faviconEnabled" data-i18n="enableFavicon">
-          Enable environment-specific favicon replacement
-        </label>
-      </div>
-    </div>
-
-    <div id="environmentsContainer"></div>
-  </div>
-
-  <!-- Sticky Footer -->
-  <div class="sticky-footer">
-    <div class="container d-flex align-items-center gap-2">
-      <button id="save" class="btn btn-primary" data-i18n="save">Save</button>
-      <button id="addEnvironment" class="btn btn-outline-secondary" data-i18n="addEnvironment">+ Add Environment</button>
-    </div>
-  </div>
-
-  <!-- Toast Container -->
-  <div class="toast-container position-fixed bottom-0 end-0 p-3" style="margin-bottom: 4rem;">
-    <div id="saveToast" class="toast align-items-center border-0 fade" role="alert" aria-live="assertive" aria-atomic="true">
-      <div class="d-flex">
-        <div class="toast-body">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-info-circle-fill me-2" viewBox="0 0 16 16">
-            <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
-          </svg>
-          <span id="toastMessage"></span>
-        </div>
-        <button type="button" class="btn-close btn-close-white me-2 m-auto" id="closeToast" aria-label="Close"></button>
-      </div>
-    </div>
-  </div>
-
+  <div id="app"></div>
   <script src="js/options.js"></script>
 </body>
 
