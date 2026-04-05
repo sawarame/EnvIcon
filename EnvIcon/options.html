@@ -48,6 +48,17 @@
     .form-control::placeholder {
       opacity: 0.4 !important;
     }
+
+    .btn-circle {
+      width: 34px;
+      height: 34px;
+      padding: 0;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+    }
   </style>
 </head>
 
@@ -61,18 +72,17 @@
       </select>
     </div>
 
-    <div class="card">
-      <div class="card-header" data-i18n="title">Favicon Replacement Settings</div>
-      <div class="card-body">
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="faviconEnabled" />
-          <label class="form-check-label" for="faviconEnabled" data-i18n="enableFavicon">
-            Enable environment-specific favicon replacement
-          </label>
-        </div>
-        <div id="environmentsContainer"></div>
+    <div class="mb-4">
+      <h5 data-i18n="title" class="mb-3">Favicon Replacement Settings</h5>
+      <div class="form-check form-switch mb-3">
+        <input class="form-check-input" type="checkbox" id="faviconEnabled" />
+        <label class="form-check-label fw-bold" for="faviconEnabled" data-i18n="enableFavicon">
+          Enable environment-specific favicon replacement
+        </label>
       </div>
     </div>
+
+    <div id="environmentsContainer"></div>
 
     <div class="d-flex align-items-center gap-2 mt-4">
       <button id="save" class="btn btn-primary" data-i18n="save">Save</button>

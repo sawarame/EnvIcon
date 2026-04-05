@@ -188,14 +188,12 @@ const renderEnvironmentSection = (
 ) => {
   
   const section = document.createElement("div");
-  section.className = "mt-3 env-section";
+  section.className = "card mb-4 env-section";
   section.dataset.envId = env.id;
 
-  section.appendChild(document.createElement("hr"));
-
-  // ヘッダー（環境名と削除ボタン）
+  // Header (Environment Name and Delete Button)
   const headerDiv = document.createElement("div");
-  headerDiv.className = "d-flex align-items-center mb-1";
+  headerDiv.className = "card-header d-flex align-items-center bg-light";
   
   let envNameElement: HTMLElement;
   
@@ -233,9 +231,14 @@ const renderEnvironmentSection = (
   }
   section.appendChild(headerDiv);
 
+  // Card Body
+  const cardBody = document.createElement("div");
+  cardBody.className = "card-body";
+  section.appendChild(cardBody);
+
   // バッジ設定エリア
   const badgeRow = document.createElement("div");
-  badgeRow.className = "row align-items-center mb-2";
+  badgeRow.className = "row align-items-center mb-4 pb-3 border-bottom";
 
   const makeColLabel = (i18nKey: string) => {
     const col = document.createElement("div");
@@ -294,20 +297,26 @@ const renderEnvironmentSection = (
   badgeRow.appendChild(makeColLabel("badgeOutlineColorLabel"));
   badgeRow.appendChild(outlineCol);
   badgeRow.appendChild(resetColDiv);
-  section.appendChild(badgeRow);
+  cardBody.appendChild(badgeRow);
 
   // ホスト名リストエリア
   const hostnameContainer = document.createElement("div");
   hostnameContainer.className = "hostnames-container";
 
+  const btnContainer = document.createElement("div");
+  btnContainer.className = "d-flex justify-content-center mt-3";
+
   const addHostnameBtn = document.createElement("button");
   addHostnameBtn.type = "button";
-  addHostnameBtn.className = "btn btn-sm btn-outline-secondary mt-2";
-  addHostnameBtn.textContent = t("addHostname");
+  addHostnameBtn.className = "btn btn-outline-secondary btn-circle";
+  addHostnameBtn.innerHTML = '<span style="font-size: 1.5rem; line-height: 1;">+</span>';
+  addHostnameBtn.title = t("addHostname");
   addHostnameBtn.dataset.i18n = "addHostname";
 
-  section.appendChild(hostnameContainer);
-  section.appendChild(addHostnameBtn);
+  btnContainer.appendChild(addHostnameBtn);
+
+  cardBody.appendChild(hostnameContainer);
+  cardBody.appendChild(btnContainer);
 
   container.appendChild(section);
 
