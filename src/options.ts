@@ -219,8 +219,9 @@ const renderEnvironmentSection = (
   if (env.isDeletable) {
     const deleteBtn = document.createElement("button");
     deleteBtn.type = "button";
-    deleteBtn.className = "btn btn-sm btn-outline-danger ms-auto";
-    deleteBtn.textContent = t("deleteEnvironment");
+    deleteBtn.className = "btn btn-outline-danger btn-circle-sm ms-auto";
+    deleteBtn.innerHTML = "&times;";
+    deleteBtn.title = t("deleteEnvironment");
     deleteBtn.addEventListener("click", () => {
       const idx = envSections.findIndex((s) => s.envId === env.id);
       if (idx !== -1) envSections.splice(idx, 1);
