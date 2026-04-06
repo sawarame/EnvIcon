@@ -6,6 +6,8 @@ import HostnameList from './HostnameList.vue';
 const props = defineProps<{
   // 表示と操作対象となる各環境の設定情報（名前、色、ホスト名リスト）
   envConfig: EnvironmentConfig;
+  // URLチェッカーから渡される現在検証中のホスト名（一致判定用）
+  checkerHostname?: string | null;
 }>();
 
 const emit = defineEmits<{
@@ -144,6 +146,7 @@ const envNameKey = props.envConfig.id === "prod" ? "ProductionName" : props.envC
 
       <HostnameList 
         :modelValue="envConfig.hostnames" 
+        :checkerHostname="checkerHostname"
         @update:modelValue="updateHostnames"
       />
     </div>

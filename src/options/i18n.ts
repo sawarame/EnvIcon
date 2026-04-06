@@ -5,7 +5,6 @@ import { ref } from 'vue';
  */
 export const i18nConfig = {
   en: {
-    title: "Favicon Replacement Settings",
     enableFavicon: "Enable environment-specific favicon replacement",
     remove: "Remove",
     regex: "Regex",
@@ -29,9 +28,12 @@ export const i18nConfig = {
     ProductionName: "Production Environment",
     StagingName: "Staging Environment",
     DevelopmentName: "Development Environment",
+    urlCheckerTitle: "URL Checker",
+    urlCheckerPlaceholder: "Enter URL to check (e.g. https://example.com/page)",
+    urlCheckerMatched: "Matched:",
+    urlCheckerNotMatched: "Did not match any environment",
   },
   ja: {
-    title: "Favicon書き換え設定",
     enableFavicon: "環境ごとのFavicon書き換えを有効にする",
     remove: "削除",
     regex: "正規表現",
@@ -55,6 +57,10 @@ export const i18nConfig = {
     ProductionName: "本番環境（Production）",
     StagingName: "ステージング環境（Staging）",
     DevelopmentName: "開発環境（Development）",
+    urlCheckerTitle: "URLチェッカー",
+    urlCheckerPlaceholder: "検証するURLを入力 (例: https://example.com/page)",
+    urlCheckerMatched: "一致しました:",
+    urlCheckerNotMatched: "一致しませんでした",
   },
 };
 

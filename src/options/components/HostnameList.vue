@@ -2,9 +2,11 @@
 import { ref } from 'vue';
 import { HostnamePattern } from '../../types';
 import { t } from '../i18n';
+import { getHostname } from '../utils';
 
 const props = defineProps<{
   modelValue: HostnamePattern[];
+  checkerHostname?: string | null;
 }>();
 
 const emit = defineEmits<{
@@ -13,6 +15,21 @@ const emit = defineEmits<{
 
 const draggingIndex = ref<number | null>(null); // 現在ドラッグ中のアイテムのインデックス
 const dragOverIndex = ref<number | null>(null); // 現在ドラッグオーバーされているアイテムのインデックス
+
+/**
+ * 特定のホスト名パターンが現在の検証ホスト名と一致するかどうかを判定する
+ */
+const isMatch = (pattern: HostnamePattern) => {
+  if (!props.checkerHostname || !pattern.value.trim()) return false;
+  if (pattern.isRegex) {
+    try {
+      return new RegExp(pattern.value).test(props.checkerHostname);
+    } catch {
+      return false;
+    }
+  }
+  return (getHostname(pattern.value) || pattern.value) === props.checkerHostname;
+};
 
 /**
  * リストの末尾に空の入力行を追加する
@@ -160,7 +177,10 @@ const onDragEnd = () => {
         :value="pattern.value"
         @input="updatePath(Number(index), ($event.target as HTMLInputElement).value)"
         :placeholder="pattern.isRegex ? t('placeholderRegex') : t('placeholderHostname')"
-        :class="{ 'is-invalid': (pattern as any)._invalid }"
+        :class="{ 
+          'is-invalid': (pattern as any)._invalid,
+          'is-valid bg-success-subtle': isMatch(pattern)
+        }"
       />
       <button
         class="btn btn-outline-danger"

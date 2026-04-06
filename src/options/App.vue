@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, nextTick } from 'vue';
+import { ref, watch, onMounted, nextTick, computed } from 'vue';
 import { SyncData, EnvironmentConfig } from '../types';
 import { currentLanguage, setLanguage, t, Language } from './i18n';
 import { getHostname } from './utils';
@@ -16,6 +16,45 @@ const toastMsg = ref(''); // トーストに表示するメッセージ
 const toastShow = ref(false); // トーストの表示/非表示フラグ
 const toastIsError = ref(false); // エラー表示かどうか（背景色に影響）
 let toastTimeout: ReturnType<typeof setTimeout> | null = null;
+
+// --- URLチェッカーに関する状態管理 ---
+const checkerUrl = ref('');
+const checkerResult = computed(() => {
+  const url = checkerUrl.value.trim();
+  if (!url) return null;
+  const hostname = getHostname(url);
+  if (!hostname) return null;
+  
+  for (const env of environments.value) {
+    if (!env.hostnames) continue;
+    const matched = env.hostnames.some(p => {
+      if (!p.value.trim()) return false;
+      if (p.isRegex) {
+        try {
+          return new RegExp(p.value).test(hostname);
+        } catch {
+          return false;
+        }
+      }
+      return (getHostname(p.value) || p.value) === hostname;
+    });
+    
+    if (matched) {
+      return { match: true, hostname: hostname, env: env };
+    }
+  }
+  return { match: false, hostname: hostname, env: null };
+});
+
+/**
+ * 組み込み環境の名前を翻訳キー経由で取得し、それ以外は設定された名前を返す
+ */
+const getEnvName = (env: EnvironmentConfig) => {
+  if (env.id === 'prod') return t('ProductionName');
+  if (env.id === 'stg') return t('StagingName');
+  if (env.id === 'dev') return t('DevelopmentName');
+  return env.name;
+};
 
 /**
  * トースト通知を表示する
@@ -271,7 +310,6 @@ const saveSettings = () => {
     </div>
 
     <div class="mb-4">
-      <h5 class="mb-3">{{ t("title") }}</h5>
       <div class="form-check form-switch mb-3">
         <input 
           class="form-check-input" 
@@ -285,11 +323,39 @@ const saveSettings = () => {
       </div>
     </div>
 
+    <!-- URLチェッカー -->
+    <div class="card mb-4">
+      <div class="card-body bg-light">
+        <h6 class="card-title fw-bold mb-3"><i class="bi bi-search"></i> {{ t("urlCheckerTitle") }}</h6>
+        <input 
+          type="text" 
+          class="form-control mb-2" 
+          v-model="checkerUrl" 
+          :placeholder="t('urlCheckerPlaceholder')"
+        />
+        <div style="min-height: 24px;">
+          <div v-if="checkerResult" class="d-flex align-items-center gap-2">
+            <span v-if="checkerResult.match" class="text-success fw-bold">
+              {{ t("urlCheckerMatched") }} 
+              <span 
+                class="badge" 
+                :style="{ backgroundColor: checkerResult.env?.badgeColor, color: checkerResult.env?.badgeOutlineColor, borderColor: checkerResult.env?.badgeOutlineColor, border: '1px solid' }"
+              >{{ checkerResult.env ? getEnvName(checkerResult.env) : '' }}</span> 
+            </span>
+            <span v-else class="text-danger fw-bold">
+              {{ t("urlCheckerNotMatched") }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div id="environmentsContainer">
       <EnvSection 
         v-for="(env, index) in environments" 
         :key="env.id"
         v-model:envConfig="environments[index]"
+        :checkerHostname="checkerResult?.hostname || null"
         @delete="deleteEnvironment"
       />
     </div>
