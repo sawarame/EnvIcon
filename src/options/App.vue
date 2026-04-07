@@ -8,6 +8,9 @@ import Toast from './components/Toast.vue';
 
 // Faviconの書き換え機能を有効にするかどうかのフラグ
 const faviconEnabled = ref(true);
+// ページ内バッジ機能を有効にするかどうかのフラグ
+const pageBadgeEnabled = ref(false);
+
 // 現在設定されている環境のリスト
 const environments = ref<EnvironmentConfig[]>([]);
 
@@ -84,6 +87,7 @@ let initialSettingsStr = ''; // 読み込み時点での設定値（JSON文字�
 const getUIStateString = () => {
   return JSON.stringify({
     faviconEnabled: faviconEnabled.value,
+    pageBadgeEnabled: pageBadgeEnabled.value,
     envs: environments.value.map(env => ({
       ...env,
       // バリデーション用の一時的なプロパティを除外し、ホスト名のみを抽出
@@ -101,6 +105,7 @@ const checkDirtyState = () => {
 
 // 値の変更を監視してDirty判定を走らせる
 watch(faviconEnabled, checkDirtyState);
+watch(pageBadgeEnabled, checkDirtyState);
 watch(environments, checkDirtyState, { deep: true });
 
 onMounted(() => {
@@ -118,6 +123,7 @@ onMounted(() => {
     // ② Chromeストレージ（Sync）から保存済みの拡張機能設定を読み込む
     chrome.storage.sync.get(null, (data: SyncData) => {
       faviconEnabled.value = data.faviconEnabled ?? true;
+      pageBadgeEnabled.value = data.pageBadgeEnabled ?? false;
       
       const defaultEnvs: EnvironmentConfig[] = [
         { id: "prod", name: "Production", badgeText: "prod", badgeColor: "#ff0000", badgeOutlineColor: "#ffffff", hostnames: [], isDeletable: false },
@@ -175,6 +181,8 @@ const addEnvironment = () => {
     badgeText: defaultName.substring(0, 4).toLowerCase(),
     badgeColor: "#888888",
     badgeOutlineColor: "#ffffff",
+    pageBadgePosition: "bottom-right",
+    pageBadgeFontSize: 24,
     hostnames: [{ value: '', isRegex: false }],
     isDeletable: true,
   };
@@ -274,6 +282,7 @@ const saveSettings = () => {
   // 保存する設定オブジェクトの構築
   const settings: SyncData = {
     faviconEnabled: faviconEnabled.value,
+    pageBadgeEnabled: pageBadgeEnabled.value,
     environments: envsToSave,
   };
 
@@ -310,7 +319,7 @@ const saveSettings = () => {
     </div>
 
     <div class="mb-4">
-      <div class="form-check form-switch mb-3">
+      <div class="form-check form-switch mb-2">
         <input 
           class="form-check-input" 
           type="checkbox" 
@@ -319,6 +328,18 @@ const saveSettings = () => {
         />
         <label class="form-check-label fw-bold" for="faviconEnabled">
           {{ t("enableFavicon") }}
+        </label>
+      </div>
+
+      <div class="form-check form-switch mb-3">
+        <input 
+          class="form-check-input" 
+          type="checkbox" 
+          id="pageBadgeEnabled" 
+          v-model="pageBadgeEnabled"
+        />
+        <label class="form-check-label fw-bold" for="pageBadgeEnabled">
+          {{ t("enablePageBadge") }}
         </label>
       </div>
     </div>

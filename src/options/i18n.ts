@@ -32,6 +32,13 @@ export const i18nConfig = {
     urlCheckerPlaceholder: "Enter URL to check (e.g. https://example.com/page)",
     urlCheckerMatched: "Matched:",
     urlCheckerNotMatched: "Did not match any environment",
+    enablePageBadge: "Display fixed badge on page",
+    pageBadgePosition: "Badge Position",
+    pageBadgeFontSize: "Font Size",
+    badgePosTopLeft: "Top Left",
+    badgePosTopRight: "Top Right",
+    badgePosBottomLeft: "Bottom Left",
+    badgePosBottomRight: "Bottom Right",
   },
   ja: {
     enableFavicon: "環境ごとのFavicon書き換えを有効にする",
@@ -61,6 +68,13 @@ export const i18nConfig = {
     urlCheckerPlaceholder: "検証するURLを入力 (例: https://example.com/page)",
     urlCheckerMatched: "一致しました:",
     urlCheckerNotMatched: "一致しませんでした",
+    enablePageBadge: "ページ内にバッジを表示する",
+    pageBadgePosition: "バッジ位置",
+    pageBadgeFontSize: "文字サイズ",
+    badgePosTopLeft: "左上",
+    badgePosTopRight: "右上",
+    badgePosBottomLeft: "左下",
+    badgePosBottomRight: "右下",
   },
 };
 

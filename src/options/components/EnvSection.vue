@@ -55,7 +55,9 @@ const confirmResetDefault = () => {
     ...props.envConfig, 
     badgeText, 
     badgeColor, 
-    badgeOutlineColor: "#ffffff" 
+    badgeOutlineColor: "#ffffff",
+    pageBadgePosition: "bottom-right",
+    pageBadgeFontSize: 24,
   });
 };
 
@@ -141,6 +143,38 @@ const envNameKey = props.envConfig.id === "prod" ? "ProductionName" : props.envC
           >
             {{ t('resetDefault') }}
           </button>
+        </div>
+      </div>
+
+      <div class="row align-items-center mb-4 pb-3 border-bottom">
+        <div class="col-auto">
+          <label class="col-form-label small text-muted">{{ t('pageBadgePosition') }}</label>
+        </div>
+        <div class="col-auto">
+          <select 
+            class="form-select form-select-sm" 
+            :value="envConfig.pageBadgePosition || 'bottom-right'"
+            @change="updateField('pageBadgePosition', ($event.target as HTMLSelectElement).value as any)"
+          >
+            <option value="top-left">{{ t('badgePosTopLeft') }}</option>
+            <option value="top-right">{{ t('badgePosTopRight') }}</option>
+            <option value="bottom-left">{{ t('badgePosBottomLeft') }}</option>
+            <option value="bottom-right">{{ t('badgePosBottomRight') }}</option>
+          </select>
+        </div>
+
+        <div class="col-auto ms-3">
+          <label class="col-form-label small text-muted">{{ t('pageBadgeFontSize') }} (px)</label>
+        </div>
+        <div class="col-auto">
+          <input 
+            type="number" 
+            class="form-control form-control-sm" 
+            style="width: 80px;" 
+            min="10" max="100"
+            :value="envConfig.pageBadgeFontSize || 24"
+            @input="updateField('pageBadgeFontSize', parseInt(($event.target as HTMLInputElement).value, 10))"
+          />
         </div>
       </div>
 

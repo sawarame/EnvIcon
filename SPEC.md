@@ -10,12 +10,15 @@
 
 - **Chrome Storage (`sync`)**:
   - `faviconEnabled` (boolean): Favicon書き換え機能の全体ON/OFF切り替え。
+  - `pageBadgeEnabled` (boolean): ページ内バッジ表示機能の全体ON/OFF切り替え。デフォルト`false`。
   - `environments` (EnvironmentConfig[]): 各環境の定義をまとめた配列。各要素は以下のプロパティを持つ:
     - `id` (string): 環境識別子。デフォルト環境は `"prod"` `"stg"` `"dev"` 、ユーザー作成は `"custom_<timestamp>"` 形式。
     - `name` (string): 画面に表示される環境名。
     - `badgeText` (string): バッジの表示文字（最大4文字）。
     - `badgeColor` (string): バッジの文字色（HEX形式）。
     - `badgeOutlineColor` (string): バッジのフチドリ色（HEX形式）。
+    - `pageBadgePosition` (string): ページ内バッジの表示位置。`'top-left'` | `'top-right'` | `'bottom-left'` | `'bottom-right'` のいずれか。デフォルトは `'bottom-right'`。
+    - `pageBadgeFontSize` (number): ページ内バッジの文字サイズ（px）。デフォルトは `24`。
     - `hostnames` (HostnamePattern[]): 環境判定に使用するホスト名または正規表現パターンの配列。
     - `isDeletable` (boolean): `true` の場合、ユーザーを削除可能。PROD/STG/DEVは `false` 。
 - **Chrome Storage (`local`)**:
@@ -59,7 +62,19 @@
     - 不正な入力や重複がある場合、該当するすべてのフィールドが赤枠（`is-invalid`）で強調表示され、画面右下にエラー内容を示す赤色のトースト（Toast）通知が一時表示される。
     - すべての検証を通過した場合のみ、`chrome.storage.sync` に保存される。保存完了時は画面右下に緑色のトースト通知がポップアップし、数秒後に自動で消える。
 
-### 2.3 バックグラウンド処理 (`src/background.ts`)
+### 2.3 ページ内バッジ表示機能 (`src/features/page_badge_changer.ts`)
+- **概要:** `pageBadgeEnabled` が `true` のとき、現在開いているタブのURLがオプションで設定された環境のホストに一致する場合、ページ本文の固定位置にバッジテキストを表示する。
+- **表示仕様:**
+  - ページ内の `<body>` 要素に `id="env-icon-page-badge"` の `<div>` を追加する。
+  - スタイルは `position: fixed`、`z-index: 2147483647`（最前面）、`pointer-events: none`。
+  - 文字は `font-weight: bold`（ボールド）、`opacity: 0.5`（半透明）。
+  - `pageBadgePosition` の値に従い、左上・右上・左下・右下に配置する（デフォルトは右下）。
+  - `pageBadgeFontSize`（デフォルト24px）で文字サイズを制御する。
+  - `badgeColor` を文字色に使用し、`badgeOutlineColor` を `text-shadow` で枠として使用する。
+  - バッジのテキストは `badgeText` を大文字で表示する。
+- **ON/OFFの制御:** `pageBadgeEnabled` が `false` の場合、またはURLに一致する環境がない場合は、既にDOMに存在するバッジ要素を除去する。
+
+### 2.4 バックグラウンド処理 (`src/background.ts`)
 - **概要:** 拡張機能のライフサイクルイベント等のハンドリングを行う。
 - **機能要件:**
   - アイコンクリック時にオプション画面を開く。
