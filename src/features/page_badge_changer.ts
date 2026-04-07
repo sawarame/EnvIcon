@@ -1,42 +1,9 @@
-import { SyncData, HostnamePattern, EnvironmentConfig, PageBadgePosition } from "../types";
+import { SyncData, EnvironmentConfig, PageBadgePosition } from "../types";
+import { findMatchingEnv } from "./utils";
 
 let _syncData: SyncData = {};
 
 const BADGE_ID = "env-icon-page-badge";
-
-/**
- * 現在のホスト名がパターン群のいずれかに一致するか検証する。
- */
-const isMatch = (
-  patterns: (string | HostnamePattern)[] | undefined,
-  currentHostname: string
-): boolean => {
-  if (!patterns) return false;
-  return patterns.some((p) => {
-    if (typeof p === "string") return p === currentHostname;
-    if (p.isRegex) {
-      try {
-        return new RegExp(p.value).test(currentHostname);
-      } catch {
-        return false;
-      }
-    }
-    return p.value === currentHostname;
-  });
-};
-
-/**
- * 現在のホスト名に一致する環境設定を返す。
- */
-const findMatchingEnv = (currentHostname: string): EnvironmentConfig | null => {
-  if (!_syncData.environments) return null;
-  for (const env of _syncData.environments) {
-    if (isMatch(env.hostnames, currentHostname)) {
-      return env;
-    }
-  }
-  return null;
-};
 
 /**
  * バッジの表示位置に対応するCSSスタイルを返す。
@@ -73,7 +40,7 @@ const updatePageBadge = () => {
     return;
   }
 
-  const env = findMatchingEnv(window.location.hostname);
+  const env = findMatchingEnv(_syncData.environments, window.location.hostname);
   if (!env) {
     removeBadge();
     return;

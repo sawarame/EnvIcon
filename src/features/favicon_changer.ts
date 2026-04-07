@@ -1,4 +1,5 @@
-import { SyncData, HostnamePattern, EnvironmentConfig } from "../types";
+import { SyncData, EnvironmentConfig } from "../types";
+import { findMatchingEnv } from "./utils";
 
 let _syncData: SyncData = {};
 let _lastGeneratedFaviconHref = "";
@@ -18,51 +19,17 @@ const getFavicons = (): HTMLLinkElement[] => {
 };
 
 /**
- * 現在のホスト名がパターン群のいずれかに一致するか検証する。
- */
-const isMatch = (
-  patterns: (string | HostnamePattern)[] | undefined,
-  currentHostname: string
-): boolean => {
-  if (!patterns) return false;
-  return patterns.some((p) => {
-    if (typeof p === "string") return p === currentHostname;
-    if (p.isRegex) {
-      try {
-        return new RegExp(p.value).test(currentHostname);
-      } catch {
-        return false;
-      }
-    }
-    return p.value === currentHostname;
-  });
-};
-
-/**
- * 現在のホスト名に一致する環境設定を返す。
- */
-const findMatchingEnv = (
-  currentHostname: string
-): { text: string; color: string; outlineColor: string } | null => {
-  if (!_syncData.environments) return null;
-  for (const env of _syncData.environments) {
-    if (isMatch(env.hostnames, currentHostname)) {
-      return {
-        text: env.badgeText || env.id,
-        color: env.badgeColor || "#888888",
-        outlineColor: env.badgeOutlineColor || "#ffffff",
-      };
-    }
-  }
-  return null;
-};
-
-/**
  * 新しいファビコン要素を作成・または更新する。
  */
 const updateFavicon = async () => {
-  const match = findMatchingEnv(window.location.hostname);
-  if (!match) return;
+  const env = findMatchingEnv(_syncData.environments, window.location.hostname);
+  if (!env) return;
+
+  const match = {
+    text: env.badgeText || env.id,
+    color: env.badgeColor || "#888888",
+    outlineColor: env.badgeOutlineColor || "#ffffff",
+  };
 
   const favicons = getFavicons();
   let originalHref = "";
