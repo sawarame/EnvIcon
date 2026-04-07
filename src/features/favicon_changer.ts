@@ -80,6 +80,8 @@ const updateFavicon = async () => {
     originalHref = "/favicon.ico";
   }
 
+  const absoluteHref = new URL(originalHref, window.location.href).href;
+
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
@@ -114,34 +116,30 @@ const updateFavicon = async () => {
     ctx.fillStyle = color;
     ctx.fillText(text, size / 2, size - 2);
 
-    canvas.toBlob((blob) => {
-      if (blob) {
-        const newHref = URL.createObjectURL(blob);
-        _lastGeneratedFaviconHref = newHref;
+    const newHref = canvas.toDataURL("image/png");
+    _lastGeneratedFaviconHref = newHref;
 
-        // 新しいlink要素を作成（または既存のものを更新）
-        let newFav = document.getElementById("env-icon-generated") as HTMLLinkElement;
-        if (!newFav) {
-          newFav = document.createElement("link");
-          newFav.id = "env-icon-generated";
-          newFav.rel = "icon";
-          document.head.appendChild(newFav);
-        }
-        newFav.href = newHref;
-      }
-    }, "image/png");
+    // 新しいlink要素を作成（または既存のものを更新）
+    let newFav = document.getElementById("env-icon-generated") as HTMLLinkElement;
+    if (!newFav) {
+      newFav = document.createElement("link");
+      newFav.id = "env-icon-generated";
+      newFav.rel = "icon";
+      document.head.appendChild(newFav);
+    }
+    newFav.href = newHref;
   };
 
   img.onload = drawAndApply;
   img.onerror = drawAndApply; // 画像なしでも描画を試みる
 
   // Background Proxy経由で画像を取得（CORS回避）
-  chrome.runtime.sendMessage({ type: "FETCH_IMAGE", url: originalHref }, (response) => {
+  chrome.runtime.sendMessage({ type: "FETCH_IMAGE", url: absoluteHref }, (response) => {
     if (response && response.dataUrl) {
       img.src = response.dataUrl;
     } else {
       // プロキシ経由でも失敗した場合は直接試す
-      img.src = originalHref;
+      img.src = absoluteHref;
     }
   });
 };
