@@ -22,6 +22,7 @@ let toastTimeout: ReturnType<typeof setTimeout> | null = null;
 
 // --- URLチェッカーに関する状態管理 ---
 const checkerUrl = ref('');
+const showUrlChecker = ref(false);
 const checkerResult = computed(() => {
   const url = checkerUrl.value.trim();
   if (!url) return null;
@@ -345,9 +346,23 @@ const saveSettings = () => {
     </div>
 
     <!-- URLチェッカー -->
-    <div class="card mb-4">
-      <div class="card-body bg-light">
-        <h6 class="card-title fw-bold mb-3"><i class="bi bi-search"></i> {{ t("urlCheckerTitle") }}</h6>
+    <div class="card mb-4 overflow-hidden">
+      <div 
+        class="card-header bg-light d-flex align-items-center justify-content-between" 
+        @click="showUrlChecker = !showUrlChecker" 
+        style="cursor: pointer; border-bottom: none;"
+        :class="{ 'border-bottom': showUrlChecker }"
+      >
+        <h6 class="fw-bold mb-0">
+          <i class="bi bi-search"></i> {{ t("urlCheckerTitle") }}
+        </h6>
+        <i class="bi" :class="showUrlChecker ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+      </div>
+      
+      <div v-if="showUrlChecker" class="card-body bg-light pt-0">
+        <p class="text-muted small mb-3">
+          {{ t("urlCheckerDescription") }}
+        </p>
         <input 
           type="text" 
           class="form-control mb-2" 
