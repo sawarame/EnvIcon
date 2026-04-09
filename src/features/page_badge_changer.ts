@@ -1,4 +1,4 @@
-import { SyncData, EnvironmentConfig, PageBadgePosition } from "../types";
+import { SyncData, PageBadgePosition } from "../types";
 import { findMatchingEnv } from "./utils";
 
 let _syncData: SyncData = {};
@@ -34,14 +34,10 @@ const getPositionStyle = (position: PageBadgePosition): Partial<CSSStyleDeclarat
  * ページ内バッジをDOMに挿入・更新する。
  */
 const updatePageBadge = () => {
-  // バッジが無効な場合、既存のバッジを取り除いて終了する
-  if (!_syncData.pageBadgeEnabled) {
-    removeBadge();
-    return;
-  }
-
   const env = findMatchingEnv(_syncData.environments, window.location.hostname);
-  if (!env) {
+
+  // 環境が見つからない、またはこの環境でページ内バッジが無効な場合はバッジを除去
+  if (!env || env.pageBadgeEnabled === false) {
     removeBadge();
     return;
   }

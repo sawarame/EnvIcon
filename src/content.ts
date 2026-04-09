@@ -6,15 +6,10 @@ export const init = () => {
   chrome.storage.sync.get(
     null,
     (syncData: SyncData) => {
-      // faviconを環境によって書き換える
-      if (
-        typeof syncData.faviconEnabled === "undefined" ||
-        syncData.faviconEnabled
-      ) {
-        initializeFaviconChangerFeature(syncData);
-      }
+      // faviconを環境によって書き換える（環境ごとのON/OFFはfeature内で判定）
+      initializeFaviconChangerFeature(syncData);
 
-      // ページ内バッジを表示する
+      // ページ内バッジを表示する（環境ごとのON/OFFはfeature内で判定）
       initializePageBadgeFeature(syncData);
     }
   );

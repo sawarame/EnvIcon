@@ -9,14 +9,14 @@
 *※ここに全体のデータの持ち方（chrome.storageのスキーマなど）を記載します*
 
 - **Chrome Storage (`sync`)**:
-  - `faviconEnabled` (boolean): Favicon書き換え機能の全体ON/OFF切り替え。
-  - `pageBadgeEnabled` (boolean): ページ内バッジ表示機能の全体ON/OFF切り替え。デフォルト`false`。
   - `environments` (EnvironmentConfig[]): 各環境の定義をまとめた配列。各要素は以下のプロパティを持つ:
     - `id` (string): 環境識別子。デフォルト環境は `"prod"` `"stg"` `"dev"` 、ユーザー作成は `"custom_<timestamp>"` 形式。
     - `name` (string): 画面に表示される環境名。
     - `badgeText` (string): バッジの表示文字（最大4文字）。
     - `badgeColor` (string): バッジの文字色（HEX形式）。
     - `badgeOutlineColor` (string): バッジのフチドリ色（HEX形式）。
+    - `faviconEnabled` (boolean): Favicon書き換え機能の環境ごとのON/OFF。デフォルト`true`。
+    - `pageBadgeEnabled` (boolean): ページ内バッジ表示機能の環境ごとのON/OFF。デフォルト`true`。
     - `pageBadgePosition` (string): ページ内バッジの表示位置。`'top-left'` | `'top-right'` | `'bottom-left'` | `'bottom-right'` のいずれか。デフォルトは `'bottom-right'`。
     - `pageBadgeFontSize` (number): ページ内バッジの文字サイズ（px）。デフォルトは `24`。
     - `hostnames` (HostnamePattern[]): 環境判定に使用するホスト名または正規表現パターンの配列。
@@ -42,12 +42,12 @@
 - **概要:** ユーザーが対象環境のホスト名や正規表現パターンを設定する画面。Bootstrap 5ベースで構築されている。
 - **機能・UI仕様:**
   - **全体設定**: 
-    - Favicon書き換え機能の全体ON/OFFを切り替えるチェックボックス (`faviconEnabled`) を上部に配置。
     - 画面右上に**言語切り替えセレクトボックスを持たせ、英語（en）と日本語（ja）を瞬時に切り替え可能**。選択した言語は `chrome.storage.local` に保存され、ブラウザごとのデフォルト言語として復元される。
   - **環境ごとのリスト設定とバッジカスタマイズ**:
     - **ユーザーによる環境追加・削除**: 画面下部の「環境追加（+ Add Environment）」ボタンを押すとダイアログが表示され、環境名を入力することで新しい環境ブロックが追加される。ユーザーが作成した環境は「環境を削除」ボタンで削除できる。
     - **デフォルト環境（PROD/STG/DEV）の保護**: `id` が `"prod"` `"stg"` `"dev"` の環境は削除不可（`isDeletable: false`）。
     - **バッジ設定**: ファビコンに重ねて描画される「文字列（最大4文字）」「文字色」「フチドリ色（Outline）」をカスタマイズできる。
+    - **環境ごとのFavicon/バッジ設定**: 各環境カードに「Favicon書き換えを有効にする」「ページ内にバッジを表示する」のトグルを配置。デフォルトは両方`true`（有効）。ページ内バッジのバッジ位置・文字サイズ設定は「ページ内にバッジを表示する」がONのときのみ表示される。
     - **リセットボタン（Reset）**: 各環境のバッジを環境ごとの初期設定値にワンクリックで戻せる。
     - 各環境ごとにホスト名の入力フィールドを複数追加・削除できるリストUIを持つ。
     - **ドラッグ＆ドロップ**: 各入力フィールドの左端にあるハンドル（⋮⋮）を掴んで、リストの並び順を変更可能。
@@ -72,7 +72,7 @@
   - `pageBadgeFontSize`（デフォルト24px）で文字サイズを制御する。
   - `badgeColor` を文字色に使用し、`badgeOutlineColor` を `text-shadow` で枠として使用する。
   - バッジのテキストは `badgeText` を大文字で表示する。
-- **ON/OFFの制御:** `pageBadgeEnabled` が `false` の場合、またはURLに一致する環境がない場合は、既にDOMに存在するバッジ要素を除去する。
+- **ON/OFFの制御:** 環境の `pageBadgeEnabled` が `false` の場合、またはURLに一致する環境がない場合は、既にDOMに存在するバッジ要素を除去する。
 
 ### 2.4 バックグラウンド処理 (`src/background.ts`)
 - **概要:** 拡張機能のライフサイクルイベント等のハンドリングを行う。

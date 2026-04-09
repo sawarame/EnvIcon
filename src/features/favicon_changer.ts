@@ -23,7 +23,13 @@ const getFavicons = (): HTMLLinkElement[] => {
  */
 const updateFavicon = async () => {
   const env = findMatchingEnv(_syncData.environments, window.location.hostname);
-  if (!env) return;
+
+  // 環境が見つからない、またはこの環境でFavicon書き換えが無効な場合はリセット
+  if (!env || env.faviconEnabled === false) {
+    const existing = document.getElementById("env-icon-generated") as HTMLLinkElement | null;
+    if (existing) existing.remove();
+    return;
+  }
 
   const match = {
     text: env.badgeText || env.id,

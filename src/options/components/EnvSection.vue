@@ -96,6 +96,34 @@ const envNameKey = props.envConfig.id === "prod" ? "ProductionName" : props.envC
     </div>
 
     <div class="card-body">
+      <!-- 環境ごとのON/OFFトグル -->
+      <div class="d-flex gap-4 mb-3 pb-3 border-bottom">
+        <div class="form-check form-switch">
+          <input
+            class="form-check-input"
+            type="checkbox"
+            :id="`faviconEnabled-${envConfig.id}`"
+            :checked="envConfig.faviconEnabled !== false"
+            @change="updateField('faviconEnabled', ($event.target as HTMLInputElement).checked)"
+          />
+          <label class="form-check-label small" :for="`faviconEnabled-${envConfig.id}`">
+            {{ t('enableFaviconPerEnv') }}
+          </label>
+        </div>
+        <div class="form-check form-switch">
+          <input
+            class="form-check-input"
+            type="checkbox"
+            :id="`pageBadgeEnabled-${envConfig.id}`"
+            :checked="envConfig.pageBadgeEnabled !== false"
+            @change="updateField('pageBadgeEnabled', ($event.target as HTMLInputElement).checked)"
+          />
+          <label class="form-check-label small" :for="`pageBadgeEnabled-${envConfig.id}`">
+            {{ t('enablePageBadgePerEnv') }}
+          </label>
+        </div>
+      </div>
+
       <div class="row align-items-center mb-4 pb-3 border-bottom">
         <div class="col-auto">
           <label class="col-form-label small text-muted">{{ t('badgeTextLabel') }}</label>
@@ -146,7 +174,8 @@ const envNameKey = props.envConfig.id === "prod" ? "ProductionName" : props.envC
         </div>
       </div>
 
-      <div class="row align-items-center mb-4 pb-3 border-bottom">
+      <!-- バッジ位置・サイズはpageBadgeEnabledがONのときのみ表示 -->
+      <div v-if="envConfig.pageBadgeEnabled !== false" class="row align-items-center mb-4 pb-3 border-bottom">
         <div class="col-auto">
           <label class="col-form-label small text-muted">{{ t('pageBadgePosition') }}</label>
         </div>

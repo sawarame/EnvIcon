@@ -11,6 +11,8 @@ export interface EnvironmentConfig {
   badgeText: string;
   badgeColor: string;
   badgeOutlineColor: string;
+  faviconEnabled?: boolean;              // Favicon書き換えの環境ごとのON/OFF（デフォルト: true）
+  pageBadgeEnabled?: boolean;           // ページ内バッジ表示の環境ごとのON/OFF（デフォルト: true）
   pageBadgePosition?: PageBadgePosition; // ページ内バッジの表示位置
   pageBadgeFontSize?: number;            // ページ内バッジの文字サイズ
   hostnames: HostnamePattern[];
@@ -18,7 +20,5 @@ export interface EnvironmentConfig {
 }
 
 export interface SyncData {
-  faviconEnabled?: boolean;
-  pageBadgeEnabled?: boolean;
   environments?: EnvironmentConfig[];
 }

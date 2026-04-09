@@ -5,7 +5,9 @@ import { ref } from 'vue';
  */
 export const i18nConfig = {
   en: {
-    enableFavicon: "Enable environment-specific favicon replacement",
+    enableFavicon: "Enable favicon replacement",
+    enableFaviconPerEnv: "Enable favicon replacement",
+    enablePageBadgePerEnv: "Display badge on page",
     remove: "Remove",
     regex: "Regex",
     save: "Save",
@@ -42,7 +44,9 @@ export const i18nConfig = {
     badgePosBottomRight: "Bottom Right",
   },
   ja: {
-    enableFavicon: "環境ごとのFavicon書き換えを有効にする",
+    enableFavicon: "Favicon書き換えを有効にする",
+    enableFaviconPerEnv: "Favicon書き換えを有効にする",
+    enablePageBadgePerEnv: "ページ内にバッジを表示する",
     remove: "削除",
     regex: "正規表現",
     save: "保存",
