@@ -6,7 +6,7 @@
   <path d="M35 40H93" stroke="#FF4D4D" stroke-width="12" stroke-linecap="round"/>
   
   <!-- STG (中央のライン: 青) -->
-  <path d="M35 64H93" stroke="#5562f8" stroke-width="12" stroke-linecap="round"/>
+  <path d="M35 64H87" stroke="#5562f8" stroke-width="12" stroke-linecap="round"/>
 
   <!-- DEV (下部のライン: 緑) -->
   <path d="M35 88H93" stroke="#6BCB77" stroke-width="12" stroke-linecap="round"/>
