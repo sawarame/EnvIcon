@@ -1,0 +1,10 @@
+{
+  "appName": {
+    "message": "EnvIcon - Environment Identifier & Favicon Badge",
+    "description": "The name of the extension."
+  },
+  "appDesc": {
+    "message": "Visualize your environments (PROD/STG/DEV) by adding a customizable badge to the favicon. Prevent accidental operations on production sites. Supports regex hostname matching.",
+    "description": "The description of the extension."
+  }
+}

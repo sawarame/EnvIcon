@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "EnvIcon",
+  "name": "__MSG_appName__",
   "version": "1.2.4",
-  "description": "Customize favicons for development, staging, and production environments.",
+  "description": "__MSG_appDesc__",
+  "default_locale": "en",
   "action": {},
   "background": {
     "service_worker": "js/background.js"
