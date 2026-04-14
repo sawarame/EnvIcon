@@ -4,7 +4,7 @@
     "description": "The name of the extension."
   },
   "appDesc": {
-    "message": "Visualize your environments (PROD/STG/DEV) by adding a customizable badge to the favicon. Prevent accidental operations on production sites. Supports regex hostname matching.",
+    "message": "Identify PROD/STG/DEV environments with favicon badges. Prevent accidental production operations. Supports regex matching.",
     "description": "The description of the extension."
   }
 }
