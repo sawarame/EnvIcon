@@ -2,6 +2,11 @@
 
 Customize and visualize your environment by automatically modifying site favicons.
 
+## Installation
+
+- **Chrome Web Store**: [Available here](https://chromewebstore.google.com/detail/envicon-environment-ident/fkapincooiacacfebhkmjoekabbffako)
+- **Microsoft Edge Add-ons**: [Available here](https://microsoftedge.microsoft.com/addons/detail/envicon/dnbhopdoagcaockicapmjmifaihmailj)
+
 ## Overview
 
 EnvIcon is a Chrome extension designed for developers and QA engineers to easily distinguish between different environments (Development, Staging, and Production) by adding a labeled overlay to the site's favicon.
