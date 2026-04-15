@@ -36,7 +36,10 @@
   3. マッチした場合、元のFavicon画像をCanvas等で読み込み、ラベルや色を重ねてData URIを生成し、`<link rel="icon">` や `<link rel="shortcut icon">` を更新する。
 - **エッジケース（考慮事項）:**
   - 元のページのFaviconが存在しない場合のフォールバックの挙動。
-  - （※SPAでのDOM遷移や属性変更によるFaviconリセットには、`MutationObserver` を用いた `href` 属性の変更検知によって対応済）
+  - **動的なFavicon更新への対応**: 
+    - `MutationObserver` を用いて、`<head>` 内の要素追加（`childList`）だけでなく、既存のfaviconタグの `href` や `rel` 属性の変更（`attributes`）も監視し、サイト側での書き換えを検知して再適用する。
+    - Observerをすり抜ける特殊な書き換えへの対策として、`setInterval` による定期チェック（3秒おき）を併用する。
+    - 無駄な再描画を避けるため、最後に適用したData URIや元のソースURLを保持し、変化がない場合は処理をスキップする最適化を行っている。
 
 ### 2.2 オプション設定画面 (`src/options.ts`, `EnvIcon/options.html`)
 - **概要:** ユーザーが対象環境のホスト名や正規表現パターンを設定する画面。Bootstrap 5ベースで構築されている。
