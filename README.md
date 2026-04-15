@@ -13,21 +13,26 @@ EnvIcon is a Chrome extension designed for developers and QA engineers to easily
 
 ## Features
 
-- **Environment Detection**: Automatically detects environments based on user-defined hostnames.
-- **Visual Indicators**: Overlays the site favicon with a semi-transparent background and colored text:
-  - **Production (PROD)**: Red text for high-risk environments.
-  - **Staging (STG)**: Blue text for testing and verification environments.
-  - **Development (DEV)**: Green text for local and development environments.
-- **Toggle Feature**: Easily enable or disable the favicon replacement feature from the options page.
+- **Dynamic Favicon Overlay**: Adds a customizable badge (up to 4 characters) to the site's favicon.
+- **In-Page Badge**: Displays a floating, semi-transparent badge in any corner of the page for clear environment identification.
+- **Flexible Environment Detection**: Supports both exact hostnames and Regular Expressions (Regex).
+- **Fully Customizable**:
+  - **Custom Environments**: Create and manage your own environments (e.g., QA, UAT, Local).
+  - **Visual Styling**: Customize badge text, color, and outline color for each environment.
+  - **Independent Toggles**: Enable or disable Favicon and In-Page badges separately per environment.
+- **Advanced Features**:
+  - **Dynamic Detection**: Automatically updates overlays even when a site changes its favicon dynamically.
+  - **Priority Management**: Reorder hostnames within an environment using drag-and-drop.
+- **Multilingual Support**: Available in both **English** and **Japanese**.
 
 ## Configuration
 
 1. Open the extension's **Options** page.
-2. Enter the hostnames for your environments:
-   - **Production Hostname**: e.g., `app.example.com`
-   - **Staging Hostname**: e.g., `stg-app.example.com`
-   - **Development Hostname**: e.g., `localhost` or `dev-app.local`
-3. Click **Save**.
+2. Customize your environment settings:
+   - **Environments**: Use default PROD/STG/DEV or add custom ones.
+   - **Matching Rules**: Add hostnames or enable **Regex** for advanced patterns.
+   - **Appearance**: Adjust colors, text, and badge positions.
+3. Click **Save** to apply changes.
 
 ## Development
 
