@@ -69,7 +69,7 @@ const envNameKey = props.envConfig.id === "prod" ? "ProductionName" : props.envC
 </script>
 
 <template>
-  <div class="card mb-4 env-section">
+  <div :id="'env-section-' + envConfig.id" class="card mb-4 env-section">
     <div class="card-header d-flex align-items-center bg-light">
       <label v-if="isDefaultEnv" class="form-label fw-bold mb-0">
         {{ t(envNameKey as any) }}
@@ -124,7 +124,7 @@ const envNameKey = props.envConfig.id === "prod" ? "ProductionName" : props.envC
         </div>
       </div>
 
-      <div class="row align-items-center mb-4 pb-3 border-bottom">
+      <div :id="'badge-settings-' + envConfig.id" class="row align-items-center mb-4 pb-3 border-bottom">
         <div class="col-auto">
           <label class="col-form-label small text-muted">{{ t('badgeTextLabel') }}</label>
         </div>

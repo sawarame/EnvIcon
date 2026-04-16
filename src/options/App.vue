@@ -5,6 +5,57 @@ import { currentLanguage, setLanguage, t, Language } from './i18n';
 import { getHostname } from './utils';
 import EnvSection from './components/EnvSection.vue';
 import Toast from './components/Toast.vue';
+import introJs from 'intro.js';
+
+// --- チュートリアルに関する関数 ---
+const startTour = () => {
+  const intro = introJs.tour();
+  intro.setOptions({
+    steps: [
+      {
+        title: t('tourWelcomeTitle'),
+        intro: t('tourWelcomeMsg'),
+      },
+      {
+        element: '#env-section-prod .hostname-input',
+        title: t('tourHostnameTitle'),
+        intro: t('tourHostnameMsg'),
+        position: 'bottom'
+      },
+      {
+        element: '#badge-settings-prod',
+        title: t('tourBadgeTitle'),
+        intro: t('tourBadgeMsg'),
+        position: 'bottom'
+      },
+      {
+        element: '#url-checker-card',
+        title: t('tourCheckerTitle'),
+        intro: t('tourCheckerMsg'),
+      },
+      {
+        element: '#save-button',
+        title: t('tourSaveTitle'),
+        intro: t('tourSaveMsg'),
+        position: 'top'
+      },
+    ],
+    nextLabel: t('tourNext'),
+    prevLabel: t('tourPrev'),
+    doneLabel: t('tourFinish'),
+    hidePrev: true,
+  });
+
+  intro.oncomplete(() => {
+    chrome.storage.local.set({ tutorialCompleted: true });
+  });
+
+  intro.onexit(() => {
+    // スキップされた場合も一応保存するかは要検討だが、ここでは完了時のみとする
+  });
+
+  intro.start();
+};
 
 // 現在設定されている環境のリスト
 const environments = ref<EnvironmentConfig[]>([]);
@@ -102,7 +153,7 @@ watch(environments, checkDirtyState, { deep: true });
 
 onMounted(() => {
   // ① Chromeストレージから現在の言語設定を読み込む
-  chrome.storage.local.get(["language"], (localData) => {
+  chrome.storage.local.get(["language", "tutorialCompleted"], (localData) => {
     let lang: Language = "en";
     if (localData.language === "ja" || localData.language === "en") {
       lang = localData.language;
@@ -144,6 +195,13 @@ onMounted(() => {
       nextTick(() => {
         initialSettingsStr = getUIStateString();
         isDirty.value = false;
+
+        // チュートリアル未完了なら開始
+        if (!localData.tutorialCompleted) {
+          setTimeout(() => {
+            startTour();
+          }, 500);
+        }
       });
     });
   });
@@ -303,21 +361,34 @@ const saveSettings = () => {
 
 <template>
   <div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h1 class="mb-0"><img src="/images/icon48.png" alt="EnvIcon Logo"> EnvIcon</h1>
-      <select 
-        class="form-select w-auto" 
-        :value="currentLanguage" 
-        @change="onLanguageChange"
-      >
-        <option value="en">English</option>
-        <option value="ja">日本語</option>
-      </select>
+    <div class="d-flex justify-content-between align-items-center mb-4 pt-3">
+      <h1 id="header-logo" class="mb-0 d-flex align-items-center gap-2">
+        <img src="/images/icon48.png" alt="EnvIcon Logo" width="32" height="32"> 
+        <span>EnvIcon</span>
+      </h1>
+      <div class="d-flex align-items-center gap-2">
+        <button 
+          class="btn btn-sm btn-outline-info rounded-circle d-flex align-items-center justify-content-center" 
+          style="width: 28px; height: 28px; padding: 0;"
+          @click="startTour"
+          :title="t('tourWelcomeTitle')"
+        >
+          <span style="font-weight: bold; font-size: 14px;">?</span>
+        </button>
+        <select 
+          class="form-select form-select-sm w-auto" 
+          :value="currentLanguage" 
+          @change="onLanguageChange"
+        >
+          <option value="en">English</option>
+          <option value="ja">日本語</option>
+        </select>
+      </div>
     </div>
 
 
     <!-- URLチェッカー -->
-    <div class="card mb-4 overflow-hidden">
+    <div id="url-checker-card" class="card mb-4 overflow-hidden shadow-sm">
       <div 
         class="card-header bg-light d-flex align-items-center justify-content-between" 
         @click="showUrlChecker = !showUrlChecker" 
@@ -325,9 +396,11 @@ const saveSettings = () => {
         :class="{ 'border-bottom': showUrlChecker }"
       >
         <h6 class="fw-bold mb-0">
-          <i class="bi bi-search"></i> {{ t("urlCheckerTitle") }}
+          🔍 {{ t("urlCheckerTitle") }}
         </h6>
-        <i class="bi" :class="showUrlChecker ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+        <span class="small text-muted">
+          {{ showUrlChecker ? '▲' : '▼' }}
+        </span>
       </div>
       
       <div v-if="showUrlChecker" class="card-body bg-light pt-0">
@@ -371,6 +444,7 @@ const saveSettings = () => {
   <div class="sticky-footer">
     <div class="container d-flex align-items-center gap-2">
       <button 
+        id="save-button"
         class="btn btn-primary" 
         @click="saveSettings"
         :disabled="!isDirty"
@@ -393,3 +467,12 @@ const saveSettings = () => {
     @close="toastShow = false" 
   />
 </template>
+
+<style>
+/* intro.js のスタイルをグローバルに適用 */
+@import 'intro.js/introjs.css';
+</style>
+
+<style scoped>
+/* コンポーネント固有のスタイル */
+</style>
