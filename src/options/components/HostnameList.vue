@@ -134,8 +134,7 @@ const onDragEnd = () => {
         <div class="hostname-custom-input-group">
           <!-- 1. Drag Handle -->
           <div class="drag-handle-box">
-            <i class="pi pi-ellipsis-v"></i>
-            <i class="pi pi-ellipsis-v"></i>
+            <i class="pi pi-bars"></i>
           </div>
 
           <!-- 2. Regex Checkbox -->
