@@ -3,54 +3,44 @@ import { EnvironmentConfig, HostnamePattern } from '../../types';
 import { t } from '../i18n';
 import HostnameList from './HostnameList.vue';
 
+import Card from 'primevue/card';
+import ToggleSwitch from 'primevue/toggleswitch';
+import InputText from 'primevue/inputtext';
+import InputNumber from 'primevue/inputnumber';
+import ColorPicker from 'primevue/colorpicker';
+import Select from 'primevue/select';
+import Button from 'primevue/button';
+import Divider from 'primevue/divider';
+import InputGroup from 'primevue/inputgroup';
+import InputGroupAddon from 'primevue/inputgroupaddon';
+
 const props = defineProps<{
-  // 表示と操作対象となる各環境の設定情報（名前、色、ホスト名リスト）
   envConfig: EnvironmentConfig;
-  // URLチェッカーから渡される現在検証中のホスト名（一致判定用）
   checkerHostname?: string | null;
 }>();
 
 const emit = defineEmits<{
-  // 設定情報の子コンポーネントからの変更を親へ同期するためのイベント
   (e: 'update:envConfig', value: EnvironmentConfig): void;
-  // この環境セクションを削除するイベント
   (e: 'delete', id: string): void;
 }>();
 
-/**
- * 環境名の文字列やバッジの色など、特定のプロパティ1つを更新・イベント発行する
- * @param field 更新するフィールド名 (例: 'name', 'badgeColor')
- * @param value 新しい値
- */
 const updateField = <K extends keyof EnvironmentConfig>(field: K, value: EnvironmentConfig[K]) => {
   emit('update:envConfig', { ...props.envConfig, [field]: value });
 };
 
-/**
- * ホスト名一覧(HostnamePattern)の配列がHostNameListから更新されたときに呼び出される
- */
 const updateHostnames = (newHostnames: HostnamePattern[]) => {
   emit('update:envConfig', { ...props.envConfig, hostnames: newHostnames });
 };
 
-/**
- * 削除ボタンが押下されたときの処理
- */
 const deleteSection = () => {
   emit('delete', props.envConfig.id);
 };
 
-/**
- * 環境ごとの背景色・名前などの設定を標準の値（デフォルト）にリセットする
- */
 const confirmResetDefault = () => {
   const { id } = props.envConfig;
-  
-  // 標準の設定値（Production/Staging/Development）がある場合はそれを利用し、カスタムの場合は先頭4文字等を参照する
   const badgeText = id === "prod" ? "prod" : id === "stg" ? "stg" : id === "dev" ? "dev" : props.envConfig.name.substring(0, 4).toLowerCase();
   const badgeColor = id === "prod" ? "#ff0000" : id === "stg" ? "#0000ff" : id === "dev" ? "#008000" : "#888888";
   
-  // 親に変更を通知する
   emit('update:envConfig', { 
     ...props.envConfig, 
     badgeText, 
@@ -61,157 +51,319 @@ const confirmResetDefault = () => {
   });
 };
 
-// 組み込みで提供されている初期環境かどうか（prod / stg / dev）を判定する。これらは名前変更と削除が不可。
 const isDefaultEnv = ["prod", "stg", "dev"].includes(props.envConfig.id);
-
-// 組み込み環境の名前表示用のi18n翻訳キー
 const envNameKey = props.envConfig.id === "prod" ? "ProductionName" : props.envConfig.id === "stg" ? "StagingName" : props.envConfig.id === "dev" ? "DevelopmentName" : "";
+
+const badgePositionOptions = [
+  { label: t('badgePosTopLeft'), value: 'top-left' },
+  { label: t('badgePosTopRight'), value: 'top-right' },
+  { label: t('badgePosBottomLeft'), value: 'bottom-left' },
+  { label: t('badgePosBottomRight'), value: 'bottom-right' },
+];
+
+const onColorChange = (field: 'badgeColor' | 'badgeOutlineColor', value: string) => {
+  const hex = value.startsWith('#') ? value : `#${value}`;
+  updateField(field, hex);
+};
+
+const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
+  const val = props.envConfig[field] || '#ffffff';
+  return val.replace('#', '');
+};
 </script>
 
 <template>
-  <div :id="'env-section-' + envConfig.id" class="card mb-4 env-section">
-    <div class="card-header d-flex align-items-center bg-light">
-      <label v-if="isDefaultEnv" class="form-label fw-bold mb-0">
-        {{ t(envNameKey as any) }}
-      </label>
-      <input 
-        v-else 
-        type="text" 
-        class="form-control form-control-sm fw-bold w-auto border-0 bg-transparent ps-0 env-name-input"
-        :class="{ 'is-invalid': (envConfig as any)._invalidName }"
-        :value="envConfig.name" 
-        @input="updateField('name', ($event.target as HTMLInputElement).value)"
-        maxlength="50" 
-      />
-      
-      <button 
-        v-if="envConfig.isDeletable" 
-        type="button" 
-        class="btn btn-outline-danger btn-circle-sm ms-auto"
-        :title="t('deleteEnvironment')"
-        @click="deleteSection"
-      >
-        &times;
-      </button>
-    </div>
-
-    <div class="card-body">
-      <!-- 環境ごとのON/OFFトグル -->
-      <div class="d-flex gap-4 mb-3 pb-3 border-bottom">
-        <div class="form-check form-switch">
-          <input
-            class="form-check-input"
-            type="checkbox"
-            :id="`faviconEnabled-${envConfig.id}`"
-            :checked="envConfig.faviconEnabled !== false"
-            @change="updateField('faviconEnabled', ($event.target as HTMLInputElement).checked)"
-          />
-          <label class="form-check-label small" :for="`faviconEnabled-${envConfig.id}`">
-            {{ t('enableFaviconPerEnv') }}
-          </label>
-        </div>
-        <div class="form-check form-switch">
-          <input
-            class="form-check-input"
-            type="checkbox"
-            :id="`pageBadgeEnabled-${envConfig.id}`"
-            :checked="envConfig.pageBadgeEnabled !== false"
-            @change="updateField('pageBadgeEnabled', ($event.target as HTMLInputElement).checked)"
-          />
-          <label class="form-check-label small" :for="`pageBadgeEnabled-${envConfig.id}`">
-            {{ t('enablePageBadgePerEnv') }}
-          </label>
-        </div>
-      </div>
-
-      <div :id="'badge-settings-' + envConfig.id" class="row align-items-center mb-4 pb-3 border-bottom">
-        <div class="col-auto">
-          <label class="col-form-label small text-muted">{{ t('badgeTextLabel') }}</label>
-        </div>
-        <div class="col-auto">
-          <input 
+  <Card :id="'env-section-' + envConfig.id" class="env-card shadow-sm border border-slate-200">
+    <template #title>
+      <div class="card-header-flex px-4 pt-4">
+        <div class="header-title-area">
+          <span v-if="isDefaultEnv" class="env-title-text">
+            {{ t(envNameKey as any) }}
+          </span>
+          <InputText 
+            v-else 
             type="text" 
-            class="form-control form-control-sm" 
-            style="width: 80px;" 
-            maxlength="4" 
-            :value="envConfig.badgeText"
-            @input="updateField('badgeText', ($event.target as HTMLInputElement).value)"
+            class="env-name-input-styled"
+            :class="{ 'p-invalid': (envConfig as any)._invalidName }"
+            v-model="envConfig.name" 
+            @input="updateField('name', ($event.target as HTMLInputElement).value)"
+            maxlength="50" 
+            placeholder="Environment Name"
           />
         </div>
-
-        <div class="col-auto">
-          <label class="col-form-label small text-muted">{{ t('badgeColorLabel') }}</label>
-        </div>
-        <div class="col-auto">
-          <input 
-            type="color" 
-            class="form-control form-control-color" 
-            :value="envConfig.badgeColor"
-            @input="updateField('badgeColor', ($event.target as HTMLInputElement).value)"
-          />
-        </div>
-
-        <div class="col-auto">
-          <label class="col-form-label small text-muted">{{ t('badgeOutlineColorLabel') }}</label>
-        </div>
-        <div class="col-auto">
-          <input 
-            type="color" 
-            class="form-control form-control-color" 
-            :value="envConfig.badgeOutlineColor"
-            @input="updateField('badgeOutlineColor', ($event.target as HTMLInputElement).value)"
-          />
-        </div>
-
-        <div class="col-auto ms-auto">
-          <button 
-            type="button" 
-            class="btn btn-sm btn-link text-decoration-none"
+        
+        <div class="flex items-center gap-2">
+           <Button 
+            icon="pi pi-refresh" 
+            text 
+            rounded
+            severity="secondary"
             @click="confirmResetDefault"
-          >
-            {{ t('resetDefault') }}
-          </button>
-        </div>
-      </div>
-
-      <!-- バッジ位置・サイズはpageBadgeEnabledがONのときのみ表示 -->
-      <div v-if="envConfig.pageBadgeEnabled !== false" class="row align-items-center mb-4 pb-3 border-bottom">
-        <div class="col-auto">
-          <label class="col-form-label small text-muted">{{ t('pageBadgePosition') }}</label>
-        </div>
-        <div class="col-auto">
-          <select 
-            class="form-select form-select-sm" 
-            :value="envConfig.pageBadgePosition || 'bottom-right'"
-            @change="updateField('pageBadgePosition', ($event.target as HTMLSelectElement).value as any)"
-          >
-            <option value="top-left">{{ t('badgePosTopLeft') }}</option>
-            <option value="top-right">{{ t('badgePosTopRight') }}</option>
-            <option value="bottom-left">{{ t('badgePosBottomLeft') }}</option>
-            <option value="bottom-right">{{ t('badgePosBottomRight') }}</option>
-          </select>
-        </div>
-
-        <div class="col-auto ms-3">
-          <label class="col-form-label small text-muted">{{ t('pageBadgeFontSize') }} (px)</label>
-        </div>
-        <div class="col-auto">
-          <input 
-            type="number" 
-            class="form-control form-control-sm" 
-            style="width: 80px;" 
-            min="10" max="100"
-            :value="envConfig.pageBadgeFontSize || 24"
-            @input="updateField('pageBadgeFontSize', parseInt(($event.target as HTMLInputElement).value, 10))"
+          />
+          <Button 
+            v-if="envConfig.isDeletable" 
+            icon="pi pi-trash" 
+            severity="danger" 
+            text 
+            rounded 
+            @click="deleteSection"
           />
         </div>
       </div>
+    </template>
 
-      <HostnameList 
-        :modelValue="envConfig.hostnames" 
-        :checkerHostname="checkerHostname"
-        @update:modelValue="updateHostnames"
-      />
-    </div>
-  </div>
+    <template #content>
+      <div class="content-wrapper px-4 pb-4">
+        <!-- 3-Column Settings Grid -->
+        <div class="smart-settings-container mt-4">
+          <div class="settings-grid-layout">
+            <!-- Column 1: Toggles -->
+            <div class="settings-column toggles-col">
+              <div class="group-header">
+                <i class="pi pi-bolt"></i>
+                <span>Features</span>
+              </div>
+              <div class="column-content">
+                <div class="toggle-row-item">
+                  <div class="toggle-info">
+                    <span class="text-sm font-bold">{{ t('enableFaviconPerEnv') }}</span>
+                  </div>
+                  <ToggleSwitch
+                    v-model="envConfig.faviconEnabled"
+                    @update:modelValue="updateField('faviconEnabled', $event)"
+                  />
+                </div>
+                <div class="toggle-row-item">
+                  <div class="toggle-info">
+                    <span class="text-sm font-bold">{{ t('enablePageBadgePerEnv') }}</span>
+                  </div>
+                  <ToggleSwitch
+                    v-model="envConfig.pageBadgeEnabled"
+                    @update:modelValue="updateField('pageBadgeEnabled', $event)"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- Column 2: Appearance -->
+            <div class="settings-column appearance-col">
+              <div class="group-header">
+                <i class="pi pi-palette"></i>
+                <span>{{ t('badgeSettings') }}</span>
+              </div>
+              <div class="column-content appearance-fields">
+                <div class="field-item">
+                  <label>{{ t('badgeTextLabel') }}</label>
+                  <InputText v-model="envConfig.badgeText" maxlength="4" class="w-full" @input="updateField('badgeText', ($event.target as HTMLInputElement).value)" />
+                </div>
+                
+                <div class="field-item">
+                  <label>{{ t('badgeColorLabel') }}</label>
+                  <InputGroup>
+                    <InputGroupAddon>
+                      <ColorPicker :modelValue="getColorValue('badgeColor')" @update:modelValue="onColorChange('badgeColor', $event as string)" />
+                    </InputGroupAddon>
+                    <InputText v-model="envConfig.badgeColor" class="text-xs font-mono" @input="updateField('badgeColor', ($event.target as HTMLInputElement).value)" />
+                  </InputGroup>
+                </div>
+
+                <div class="field-item">
+                  <label>{{ t('badgeOutlineColorLabel') }}</label>
+                  <InputGroup>
+                    <InputGroupAddon>
+                      <ColorPicker :modelValue="getColorValue('badgeOutlineColor')" @update:modelValue="onColorChange('badgeOutlineColor', $event as string)" />
+                    </InputGroupAddon>
+                    <InputText v-model="envConfig.badgeOutlineColor" class="text-xs font-mono" @input="updateField('badgeOutlineColor', ($event.target as HTMLInputElement).value)" />
+                  </InputGroup>
+                </div>
+              </div>
+            </div>
+
+            <!-- Column 3: Badge Options -->
+            <div class="settings-column options-col" :class="{ 'disabled-opacity': !envConfig.pageBadgeEnabled }">
+              <div class="group-header">
+                <i class="pi pi-cog"></i>
+                <span>{{ t('pageBadgeSettings') }}</span>
+              </div>
+              <div class="column-content options-fields">
+                <div class="field-item">
+                  <label>{{ t('pageBadgePosition') }}</label>
+                  <Select 
+                    v-model="envConfig.pageBadgePosition"
+                    :options="badgePositionOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                    class="w-full"
+                    :disabled="!envConfig.pageBadgeEnabled"
+                    @update:modelValue="updateField('pageBadgePosition', $event as any)"
+                  />
+                </div>
+
+                <div class="field-item">
+                  <label>{{ t('pageBadgeFontSize') }}</label>
+                  <InputNumber 
+                    v-model="envConfig.pageBadgeFontSize"
+                    :min="10" :max="100"
+                    showButtons
+                    buttonLayout="horizontal"
+                    class="w-full font-size-input-field"
+                    :disabled="!envConfig.pageBadgeEnabled"
+                    @update:modelValue="updateField('pageBadgeFontSize', $event || 24)"
+                  >
+                    <template #incrementbuttonicon><i class="pi pi-plus text-xs" /></template>
+                    <template #decrementbuttonicon><i class="pi pi-minus text-xs" /></template>
+                  </InputNumber>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <Divider align="left" class="my-8">
+          <div class="flex items-center gap-2 text-slate-400">
+            <i class="pi pi-link text-xs"></i>
+            <span class="text-xs font-bold uppercase tracking-widest">{{ t('hostnamePatterns') }}</span>
+          </div>
+        </Divider>
+
+        <HostnameList 
+          v-model="envConfig.hostnames" 
+          :checkerHostname="checkerHostname"
+          @update:modelValue="updateHostnames"
+        />
+      </div>
+    </template>
+  </Card>
 </template>
+
+<style scoped>
+.env-card {
+  margin-bottom: 2.5rem;
+  border-radius: 1rem;
+  background-color: white;
+}
+
+.card-header-flex {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header-title-area {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.icon-square {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(0,0,0,0.05);
+}
+
+.env-title-text {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.env-name-input-styled {
+  font-size: 1.125rem;
+  font-weight: 700;
+  border: none;
+  background: transparent;
+  padding: 0.5rem;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.env-name-input-styled:hover, .env-name-input-styled:focus {
+  background: #f1f5f9;
+}
+
+.smart-settings-container {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.settings-grid-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+@media (max-width: 1024px) {
+  .settings-grid-layout {
+    grid-template-columns: 1fr;
+  }
+  .settings-column:not(:last-child) {
+    border-right: none !important;
+    border-bottom: 1px solid #e2e8f0;
+  }
+}
+
+.settings-column {
+  padding: 1.5rem;
+}
+
+.settings-column:not(:last-child) {
+  border-right: 1px solid #e2e8f0;
+}
+
+.group-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 1.5rem;
+}
+
+.column-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.toggle-row-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  gap: 1rem;
+}
+
+.field-item label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #64748b;
+  margin-bottom: 0.5rem;
+}
+
+.disabled-opacity {
+  opacity: 0.5;
+  filter: grayscale(0.8);
+}
+
+.my-8 {
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+}
+
+.px-4 { padding-left: 1.5rem; padding-right: 1.5rem; }
+.pt-4 { padding-top: 1.5rem; }
+.pb-4 { padding-bottom: 1.5rem; }
+.mt-4 { margin-top: 1rem; }
+</style>

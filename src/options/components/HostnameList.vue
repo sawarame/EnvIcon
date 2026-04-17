@@ -4,6 +4,10 @@ import { HostnamePattern } from '../../types';
 import { t } from '../i18n';
 import { getHostname } from '../utils';
 
+import Checkbox from 'primevue/checkbox';
+import InputText from 'primevue/inputtext';
+import Button from 'primevue/button';
+
 const props = defineProps<{
   modelValue: HostnamePattern[];
   checkerHostname?: string | null;
@@ -13,12 +17,9 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: HostnamePattern[]): void;
 }>();
 
-const draggingIndex = ref<number | null>(null); // 現在ドラッグ中のアイテムのインデックス
-const dragOverIndex = ref<number | null>(null); // 現在ドラッグオーバーされているアイテムのインデックス
+const draggingIndex = ref<number | null>(null);
+const dragOverIndex = ref<number | null>(null);
 
-/**
- * 特定のホスト名パターンが現在の検証ホスト名と一致するかどうかを判定する
- */
 const isMatch = (pattern: HostnamePattern) => {
   if (!props.checkerHostname || !pattern.value.trim()) return false;
   if (pattern.isRegex) {
@@ -31,17 +32,11 @@ const isMatch = (pattern: HostnamePattern) => {
   return (getHostname(pattern.value) || pattern.value) === props.checkerHostname;
 };
 
-/**
- * リストの末尾に空の入力行を追加する
- */
 const addInput = () => {
   const newList = [...props.modelValue, { value: '', isRegex: false }];
   emit('update:modelValue', newList);
 };
 
-/**
- * 指定されたインデックスの入力行を削除する（ただし行が1つしかない場合は削除不可）
- */
 const removeInput = (index: number) => {
   if (props.modelValue.length > 1) {
     const newList = [...props.modelValue];
@@ -50,29 +45,20 @@ const removeInput = (index: number) => {
   }
 };
 
-/**
- * 指定されたインデックスのホスト名（または正規表現）の入力値を更新する
- */
 const updatePath = (index: number, val: string) => {
   const newList = [...props.modelValue];
   newList[index].value = val;
   emit('update:modelValue', newList);
 };
 
-/**
- * 指定されたインデックスのトグル（正規表現かどうか）のオンオフを更新する
- */
 const updateRegex = (index: number, isRegex: boolean) => {
   const newList = [...props.modelValue];
   newList[index].isRegex = isRegex;
   emit('update:modelValue', newList);
 };
 
-// --- ドラッグ＆ドロップ (Drag and Drop) イベントハンドラー ---
+// --- ドラッグ＆ドロップ ---
 
-/**
- * ドラッグ開始時の処理
- */
 const onDragStart = (event: DragEvent, index: number) => {
   draggingIndex.value = index;
   if (event.dataTransfer) {
@@ -80,52 +66,35 @@ const onDragStart = (event: DragEvent, index: number) => {
   }
 };
 
-/**
- * ドラッグ要素が別の要素に入ったときの処理
- */
 const onDragEnter = (event: DragEvent, index: number) => {
-  event.preventDefault(); // ドロップ先として有効にするため
+  event.preventDefault();
   if (draggingIndex.value !== null && draggingIndex.value !== index) {
     dragOverIndex.value = index;
   }
 };
 
-/**
- * ドラッグ要素が要素上にある間の処理
- */
 const onDragOver = (event: DragEvent, index: number) => {
-  event.preventDefault(); // ドロップを許可するために必須
+  event.preventDefault();
 };
 
-/**
- * ドラッグ要素が要素外に出たときの処理
- */
 const onDragLeave = (event: DragEvent, index: number) => {
   if (dragOverIndex.value === index) {
     dragOverIndex.value = null;
   }
 };
 
-/**
- * ドラッグ要素がドロップされたときの処理
- */
 const onDrop = (event: DragEvent, index: number) => {
   event.preventDefault();
   if (draggingIndex.value !== null && draggingIndex.value !== index) {
     const newList = [...props.modelValue];
-    // ドラッグ元のアイテムを配列から取り出し、ドロップ先の位置に挿入する
     const item = newList.splice(draggingIndex.value, 1)[0];
     newList.splice(index, 0, item);
     emit('update:modelValue', newList);
   }
-  // 状態のリセット
   draggingIndex.value = null;
   dragOverIndex.value = null;
 };
 
-/**
- * ドラッグ操作が終了したときの処理（キャンセル時など）
- */
 const onDragEnd = () => {
   draggingIndex.value = null;
   dragOverIndex.value = null;
@@ -133,72 +102,218 @@ const onDragEnd = () => {
 </script>
 
 <template>
-  <div class="hostnames-container">
-    <div
-      v-for="(pattern, index) in modelValue"
-      :key="index"
-      class="input-group mb-2"
-      :class="{ 
-        'dragging': draggingIndex === Number(index),
-        'drag-over': dragOverIndex === Number(index)
-      }"
-      draggable="true"
-      @dragstart="onDragStart($event, Number(index))"
-      @dragenter="onDragEnter($event, Number(index))"
-      @dragover="onDragOver($event, Number(index))"
-      @dragleave="onDragLeave($event, Number(index))"
-      @drop="onDrop($event, Number(index))"
-      @dragend="onDragEnd"
-    >
-      <div class="drag-handle" :title="t('dragHandle')">
-        ⋮⋮
-      </div>
-      <div class="input-group-text">
-        <input
-          class="form-check-input mt-0 is-regex"
-          type="checkbox"
-          :id="'regex-' + index + '-' + Math.random().toString(36).substr(2, 9)"
-          :title="t('useRegex')"
-          :checked="pattern.isRegex"
-          @change="updateRegex(Number(index), ($event.target as HTMLInputElement).checked)"
-        />
-        <label
-          class="ms-2 small mb-0"
-          style="cursor: pointer"
-          :for="'regex-' + index + '-' + Math.random().toString(36).substr(2, 9)"
-          :title="t('useRegex')"
-        >
-          {{ t('regex') }}
-        </label>
-      </div>
-      <input
-        type="text"
-        class="form-control hostname-input"
-        :value="pattern.value"
-        @input="updatePath(Number(index), ($event.target as HTMLInputElement).value)"
-        :placeholder="pattern.isRegex ? t('placeholderRegex') : t('placeholderHostname')"
+  <div class="hostname-list-container">
+    <div class="hostname-rows-group">
+      <div
+        v-for="(pattern, index) in modelValue"
+        :key="index"
+        class="hostname-row-wrapper"
         :class="{ 
-          'is-invalid': (pattern as any)._invalid,
-          'is-valid bg-success-subtle': isMatch(pattern)
+          'dragging': draggingIndex === Number(index),
+          'drag-over': dragOverIndex === Number(index)
         }"
-      />
-      <button
-        class="btn btn-outline-danger"
-        type="button"
-        @click="removeInput(Number(index))"
-        :disabled="modelValue.length <= 1"
+        draggable="true"
+        @dragstart="onDragStart($event, Number(index))"
+        @dragenter="onDragEnter($event, Number(index))"
+        @dragover="onDragOver($event, Number(index))"
+        @dragleave="onDragLeave($event, Number(index))"
+        @drop="onDrop($event, Number(index))"
+        @dragend="onDragEnd"
       >
-        {{ t('remove') }}
-      </button>
+        <div class="hostname-custom-input-group">
+          <!-- 1. Drag Handle -->
+          <div class="drag-handle-box">
+            <i class="pi pi-ellipsis-v text-slate-300"></i>
+            <i class="pi pi-ellipsis-v text-slate-300 -ml-1"></i>
+          </div>
+
+          <!-- 2. Regex Checkbox -->
+          <div class="regex-addon-box">
+            <Checkbox
+              :id="'regex-' + index"
+              v-model="pattern.isRegex"
+              :binary="true"
+              @update:modelValue="updateRegex(Number(index), $event)"
+              class="w-4 h-4"
+            />
+            <label :for="'regex-' + index" class="text-xs font-bold text-slate-500 cursor-pointer select-none uppercase tracking-tight">
+              {{ t('regex') }}
+            </label>
+          </div>
+
+          <!-- 3. Hostname Input -->
+          <InputText
+            :value="pattern.value"
+            @input="updatePath(Number(index), ($event.target as HTMLInputElement).value)"
+            :placeholder="pattern.isRegex ? t('placeholderRegex') : t('placeholderHostname')"
+            :class="{ 
+              'p-invalid': (pattern as any)._invalid,
+              'match-success': isMatch(pattern)
+            }"
+            class="hostname-input-field"
+          />
+
+          <!-- 4. Remove Button -->
+          <Button
+            icon="pi pi-trash"
+            severity="danger"
+            variant="text"
+            @click="removeInput(Number(index))"
+            :disabled="modelValue.length <= 1"
+            class="remove-item-btn"
+          />
+        </div>
+      </div>
+    </div>
+    
+    <div class="add-button-wrapper">
+      <Button
+        icon="pi pi-plus-circle"
+        :label="t('addEnvironmentPattern') || 'Add Hostname Pattern'"
+        severity="secondary"
+        variant="text"
+        @click="addInput"
+        class="add-hostname-modern-btn"
+      />
     </div>
   </div>
-  <div class="d-flex justify-content-center mt-3">
-    <button
-      type="button"
-      class="btn btn-outline-secondary btn-circle"
-      @click="addInput"
-    >
-      <span style="font-size: 1.5rem; line-height: 1;">+</span>
-    </button>
-  </div>
 </template>
+
+<style scoped>
+.hostname-list-container {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: white;
+}
+
+.hostname-rows-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.hostname-row-wrapper {
+  transition: background-color 0.2s;
+  border-bottom: 1px solid #f1f5f9;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.hostname-row-wrapper:last-child {
+  border-bottom: none;
+}
+
+.hostname-row-wrapper.drag-over {
+  background-color: color-mix(in srgb, var(--p-primary-color), transparent 95%);
+  border-top: 2px solid var(--p-primary-color);
+}
+
+/* Custom Input Group Style */
+.hostname-custom-input-group {
+  display: flex;
+  align-items: stretch;
+  height: 2.75rem; /* 44px */
+  background: white;
+}
+
+/* Common styling for all group items to ensure they stick together */
+.drag-handle-box,
+.regex-addon-box,
+.hostname-input-field,
+.remove-item-btn {
+  border: none !important;
+  border-left: 1px solid #cbd5e1 !important; /* Visible divider color */
+  border-radius: 0 !important;
+  margin: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Hide the very first left border to stay flush with container */
+.hostname-custom-input-group > :first-child {
+  border-left: none !important;
+}
+
+/* 1. Drag Handle Box */
+.drag-handle-box {
+  width: 3rem;
+  background-color: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+}
+.drag-handle-box:active { cursor: grabbing; }
+
+/* 2. Regex Addon Box */
+.regex-addon-box {
+  background-color: #f8fafc;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 1rem;
+}
+
+/* 3. Input Field */
+.hostname-input-field {
+  flex: 1;
+  padding: 0 1rem !important;
+  height: 100% !important;
+  font-size: 0.875rem;
+}
+.hostname-input-field:focus {
+  z-index: 1;
+  background-color: #fff;
+}
+
+/* Match Success State for Input */
+.match-success {
+  background-color: #f0fdf4 !important;
+  color: #166534 !important;
+  font-weight: 600;
+}
+
+/* 4. Remove Button */
+.remove-item-btn {
+  width: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.3;
+  transition: opacity 0.2s, background 0.2s;
+}
+.remove-item-btn:hover:not(:disabled) {
+  opacity: 1;
+  background-color: #fef2f2 !important;
+}
+
+/* Add Button at bottom */
+.add-button-wrapper {
+  background-color: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+}
+
+.add-hostname-modern-btn {
+  width: 100% !important;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  letter-spacing: 0.05em;
+  padding: 1rem !important;
+  color: #64748b !important;
+  border-radius: 0 !important;
+  transition: all 0.2s;
+}
+
+.add-hostname-modern-btn:hover {
+  background-color: white !important;
+  color: var(--p-primary-color) !important;
+}
+
+:deep(.p-checkbox-box) {
+  border-radius: 4px !important;
+}
+
+.-ml-1 { margin-left: -0.25rem; }
+</style>

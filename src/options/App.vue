@@ -4,8 +4,19 @@ import { SyncData, EnvironmentConfig } from '../types';
 import { currentLanguage, setLanguage, t, Language } from './i18n';
 import { getHostname } from './utils';
 import EnvSection from './components/EnvSection.vue';
-import Toast from './components/Toast.vue';
 import introJs from 'intro.js';
+import { useToast } from 'primevue/usetoast';
+
+import Button from 'primevue/button';
+import Select from 'primevue/select';
+import InputText from 'primevue/inputtext';
+import Accordion from 'primevue/accordion';
+import AccordionPanel from 'primevue/accordionpanel';
+import AccordionHeader from 'primevue/accordionheader';
+import AccordionContent from 'primevue/accordioncontent';
+import Toast from 'primevue/toast';
+
+const toast = useToast();
 
 // --- チュートリアルに関する関数 ---
 const startTour = () => {
@@ -17,15 +28,9 @@ const startTour = () => {
         intro: t('tourWelcomeMsg'),
       },
       {
-        element: '#env-section-prod .hostname-input',
+        element: '#env-section-prod',
         title: t('tourHostnameTitle'),
         intro: t('tourHostnameMsg'),
-        position: 'bottom'
-      },
-      {
-        element: '#badge-settings-prod',
-        title: t('tourBadgeTitle'),
-        intro: t('tourBadgeMsg'),
         position: 'bottom'
       },
       {
@@ -50,25 +55,12 @@ const startTour = () => {
     chrome.storage.local.set({ tutorialCompleted: true });
   });
 
-  intro.onexit(() => {
-    // スキップされた場合も一応保存するかは要検討だが、ここでは完了時のみとする
-  });
-
   intro.start();
 };
 
-// 現在設定されている環境のリスト
 const environments = ref<EnvironmentConfig[]>([]);
 
-// --- トースト通知に関する状態管理 ---
-const toastMsg = ref(''); // トーストに表示するメッセージ
-const toastShow = ref(false); // トーストの表示/非表示フラグ
-const toastIsError = ref(false); // エラー表示かどうか（背景色に影響）
-let toastTimeout: ReturnType<typeof setTimeout> | null = null;
-
-// --- URLチェッカーに関する状態管理 ---
 const checkerUrl = ref('');
-const showUrlChecker = ref(false);
 const checkerResult = computed(() => {
   const url = checkerUrl.value.trim();
   if (!url) return null;
@@ -96,9 +88,6 @@ const checkerResult = computed(() => {
   return { match: false, hostname: hostname, env: null };
 });
 
-/**
- * 組み込み環境の名前を翻訳キー経由で取得し、それ以外は設定された名前を返す
- */
 const getEnvName = (env: EnvironmentConfig) => {
   if (env.id === 'prod') return t('ProductionName');
   if (env.id === 'stg') return t('StagingName');
@@ -106,64 +95,43 @@ const getEnvName = (env: EnvironmentConfig) => {
   return env.name;
 };
 
-/**
- * トースト通知を表示する
- * @param message 表示するメッセージ内容
- * @param isError エラー表示にする場合は true を指定する
- */
 const showToast = (message: string, isError: boolean = false) => {
-  toastMsg.value = message;
-  toastIsError.value = isError;
-  toastShow.value = true;
-  if (toastTimeout) clearTimeout(toastTimeout);
-  
-  // 3秒後に自動で非表示にする
-  toastTimeout = setTimeout(() => {
-    toastShow.value = false;
-  }, 3000);
+  toast.add({
+    severity: isError ? 'error' : 'success',
+    summary: isError ? t('errorTitle') || 'Error' : t('successTitle') || 'Success',
+    detail: message,
+    life: 3000
+  });
 };
 
-// --- 未保存状態（Dirty状態）の管理 ---
-const isDirty = ref(false); // 設定が編集され、未保存かどうか
-let initialSettingsStr = ''; // 読み込み時点での設定値（JSON文字列）
+const isDirty = ref(false);
+let initialSettingsStr = '';
 
-/**
- * 現在のフォーム状態を文字列（JSON）として取得する
- * この文字列を比較して、設定が変更されたか（Dirty状態か）を判定する
- */
 const getUIStateString = () => {
   return JSON.stringify({
     envs: environments.value.map(env => ({
       ...env,
-      // バリデーション用の一時的なプロパティを除外し、ホスト名のみを抽出
       hostnames: env.hostnames.map(hn => ({ value: hn.value, isRegex: hn.isRegex }))
     }))
   });
 };
 
-/**
- * 値が変更されたら呼び出され、初期状態と比較して未保存状態（isDirty）を更新する
- */
 const checkDirtyState = () => {
   isDirty.value = getUIStateString() !== initialSettingsStr;
 };
 
-// 値の変更を監視してDirty判定を走らせる
 watch(environments, checkDirtyState, { deep: true });
 
 onMounted(() => {
-  // ① Chromeストレージから現在の言語設定を読み込む
   chrome.storage.local.get(["language", "tutorialCompleted"], (localData) => {
     let lang: Language = "en";
     if (localData.language === "ja" || localData.language === "en") {
       lang = localData.language;
     } else {
-      // 保存された言語がない場合はブラウザの言語情報から推測する
       lang = navigator.language.startsWith("ja") ? "ja" : "en";
     }
     setLanguage(lang);
 
-    // ② Chromeストレージ（Sync）から保存済みの拡張機能設定を読み込む
     chrome.storage.sync.get(null, (data: SyncData) => {
       const defaultEnvs: EnvironmentConfig[] = [
         { id: "prod", name: "Production", badgeText: "prod", badgeColor: "#ff0000", badgeOutlineColor: "#ffffff", faviconEnabled: true, pageBadgeEnabled: true, pageBadgePosition: "bottom-right", pageBadgeFontSize: 24, hostnames: [], isDeletable: false },
@@ -171,12 +139,10 @@ onMounted(() => {
         { id: "dev",  name: "Development",badgeText: "dev",  badgeColor: "#008000", badgeOutlineColor: "#ffffff", faviconEnabled: true, pageBadgeEnabled: true, pageBadgePosition: "bottom-right", pageBadgeFontSize: 24, hostnames: [], isDeletable: false },
       ];
 
-      // 保存された環境設定が存在すればそれを、なければデフォルト設定をセットする
       environments.value = (data.environments && data.environments.length > 0)
         ? data.environments
         : defaultEnvs;
 
-      // 既存データの移行: faviconEnabled / pageBadgeEnabledが未定義ならデフォルト(true)を補完する
       environments.value.forEach(env => {
         if (env.faviconEnabled === undefined) env.faviconEnabled = true;
         if (env.pageBadgeEnabled === undefined) env.pageBadgeEnabled = true;
@@ -184,19 +150,16 @@ onMounted(() => {
         if (!env.pageBadgeFontSize) env.pageBadgeFontSize = 24;
       });
 
-      // ホスト名リストが空の場合は初期入力行を1つ追加しておく
       environments.value.forEach(env => {
         if (!env.hostnames || env.hostnames.length === 0) {
           env.hostnames = [{ value: '', isRegex: false }];
         }
       });
 
-      // 描画後（DOM適用後）に現在の状態をデフォルトとして保存し、Dirty状態をリセットする
       nextTick(() => {
         initialSettingsStr = getUIStateString();
         isDirty.value = false;
 
-        // チュートリアル未完了なら開始
         if (!localData.tutorialCompleted) {
           setTimeout(() => {
             startTour();
@@ -207,26 +170,16 @@ onMounted(() => {
   });
 });
 
-/**
- * 言語が変更されたときの処理
- */
-const onLanguageChange = (e: Event) => {
-  const val = (e.target as HTMLSelectElement).value as Language;
-  setLanguage(val); // 画面上の言語アセットを即時変更する
-  chrome.storage.local.set({ language: val }); // 設定として即時保存
+const onLanguageChange = (val: Language) => {
+  setLanguage(val);
+  chrome.storage.local.set({ language: val });
   checkDirtyState();
 };
 
-/**
- * 指定されたIDの環境セクションを削除する
- */
 const deleteEnvironment = (id: string) => {
   environments.value = environments.value.filter(env => env.id !== id);
 };
 
-/**
- * カスタム環境（新規環境）をリストの最後に追加する
- */
 const addEnvironment = () => {
   const defaultName = t("newEnvDefaultName");
   const id = `custom_${Date.now()}`;
@@ -245,7 +198,6 @@ const addEnvironment = () => {
   };
   environments.value.push(newEnv);
   
-  // 追加されたらスムーズに画面の一番下までスクロールして追加要素を目視しやすくする
   nextTick(() => {
     window.scrollTo({
       top: document.body.scrollHeight,
@@ -254,16 +206,12 @@ const addEnvironment = () => {
   });
 };
 
-/**
- * 設定（フォーム）の内容を検証し、問題なければChrome Storage (sync)へ保存する
- */
 const saveSettings = () => {
-  let hasInvalid = false;  // 無効な入力があるか
-  let hasDuplicate = false; // 重複した入力があるか
-  let hasEmptyName = false; // 空の環境名があるか
-  const seenPatterns = new Set<string>(); // 重複検証用セット
+  let hasInvalid = false;
+  let hasDuplicate = false;
+  let hasEmptyName = false;
+  const seenPatterns = new Set<string>();
 
-  // すべてのバリデーション状態（エラー表示用のフラグ）を一旦リセット
   environments.value.forEach(env => {
     (env as any)._invalidName = false;
     env.hostnames.forEach(hn => {
@@ -271,7 +219,6 @@ const saveSettings = () => {
     });
   });
 
-  // 環境名のバリデーション処理
   environments.value.forEach(env => {
     const name = env.name.trim();
     if (name === "") {
@@ -280,9 +227,7 @@ const saveSettings = () => {
     }
   });
 
-  // 環境ごとのホスト名を検証しながら保存用データ（envsToSave）を作成する
   const envsToSave = environments.value.map(env => {
-    // 空欄のホスト名項目は無視する
     const validHostnames = env.hostnames.filter(hn => hn.value.trim() !== "");
     const processedHostnames = validHostnames.map(hn => {
       const rawValue = hn.value.trim();
@@ -290,7 +235,6 @@ const saveSettings = () => {
       let processedValue = rawValue;
 
       if (hn.isRegex) {
-        // 正規表現として有効かテストする
         try {
           new RegExp(rawValue);
           patternKey = `regex:${rawValue}`;
@@ -299,18 +243,16 @@ const saveSettings = () => {
           hasInvalid = true;
         }
       } else {
-        // URL、またはホスト名として有効かバリデーション（getHostname() ユーティリティを利用）
         const hostname = getHostname(rawValue);
         if (!hostname) {
           (hn as any)._invalid = true;
           hasInvalid = true;
         } else {
-          processedValue = hostname; // "http://example.com" 等の形式ならホスト名だけに整形される
+          processedValue = hostname;
           patternKey = `host:${hostname}`;
         }
       }
 
-      // 重複チェック
       if (!hasInvalid && patternKey) {
         if (seenPatterns.has(patternKey)) {
           (hn as any)._invalid = true;
@@ -330,149 +272,299 @@ const saveSettings = () => {
     };
   });
 
-  // バリデーションエラーがあった場合は保存を中止しエラーメッセージを出す
   if (hasInvalid || hasDuplicate || hasEmptyName) {
     showToast(hasDuplicate ? t("errorDuplicate") : t("errorInvalid"), true);
     return;
   }
 
-  // 保存する設定オブジェクトの構築
   const settings: SyncData = {
     environments: envsToSave,
   };
 
-  // Chromeストレージへ保存する
   chrome.storage.sync.set(settings, () => {
-    showToast(t("saved"), false); // 保存成功メッセージを出す
+    showToast(t("saved"), false);
     initialSettingsStr = getUIStateString();
     isDirty.value = false;
     
-    // 不要な空白行が削除され、パース＆整形された後の値をUIへ反映し直す
     environments.value = envsToSave;
     environments.value.forEach(env => {
-      // 削除された結果すべて0行になった場合は、空の入力行を一つだけ追加しておく
       if (!env.hostnames || env.hostnames.length === 0) {
         env.hostnames = [{ value: '', isRegex: false }];
       }
     });
   });
 };
+
+const languageOptions = [
+  { label: 'English', value: 'en' },
+  { label: '日本語', value: 'ja' }
+];
 </script>
 
 <template>
-  <div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-4 pt-3">
-      <h1 id="header-logo" class="mb-0 d-flex align-items-center gap-2">
-        <img src="/images/icon48.png" alt="EnvIcon Logo" width="32" height="32"> 
-        <span>EnvIcon</span>
-      </h1>
-      <div class="d-flex align-items-center gap-2">
-        <button 
-          class="btn btn-sm btn-outline-info rounded-circle d-flex align-items-center justify-content-center" 
-          style="width: 28px; height: 28px; padding: 0;"
-          @click="startTour"
-          :title="t('tourWelcomeTitle')"
-        >
-          <span style="font-weight: bold; font-size: 14px;">?</span>
-        </button>
-        <select 
-          class="form-select form-select-sm w-auto" 
-          :value="currentLanguage" 
-          @change="onLanguageChange"
-        >
-          <option value="en">English</option>
-          <option value="ja">日本語</option>
-        </select>
-      </div>
+  <div class="app-wrapper">
+    <div class="container main-content">
+      <!-- Header Section -->
+      <header class="header-section">
+        <div class="logo-area">
+          <img src="/images/icon48.png" alt="EnvIcon Logo" class="logo-img">
+          <span class="logo-text">EnvIcon</span>
+        </div>
+        <div class="header-actions">
+          <Button 
+            icon="pi pi-question" 
+            rounded 
+            text
+            severity="secondary"
+            @click="startTour"
+            :title="t('tourWelcomeTitle')"
+          />
+          <Select 
+            v-model="currentLanguage" 
+            :options="languageOptions" 
+            optionLabel="label" 
+            optionValue="value"
+            @update:modelValue="onLanguageChange"
+            class="language-select"
+            variant="filled"
+          />
+        </div>
+      </header>
+
+      <!-- URL Checker -->
+      <Accordion id="url-checker-card" class="mb-8 shadow-sm rounded-xl overflow-hidden">
+        <AccordionPanel value="0">
+          <AccordionHeader>
+            <div class="flex items-center gap-3">
+              <i class="pi pi-search text-primary text-xl"></i>
+              <span class="font-bold text-lg">{{ t("urlCheckerTitle") }}</span>
+            </div>
+          </AccordionHeader>
+          <AccordionContent>
+            <div class="p-2">
+              <p class="text-muted-color mb-6 leading-relaxed">
+                {{ t("urlCheckerDescription") }}
+              </p>
+              <div class="checker-input-area">
+                <InputText 
+                  v-model="checkerUrl" 
+                  :placeholder="t('urlCheckerPlaceholder')"
+                  class="w-full h-12 text-lg px-4"
+                />
+              </div>
+              <div class="checker-result mt-6 min-h-[40px] flex items-center">
+                <div v-if="checkerResult" class="flex items-center gap-3 animate-fade-in">
+                  <template v-if="checkerResult.match">
+                    <i class="pi pi-check-circle text-green-500 text-2xl"></i>
+                    <span class="text-green-600 font-semibold text-lg">
+                      {{ t("urlCheckerMatched") }} 
+                    </span>
+                    <span 
+                      class="env-badge-tag shadow-sm" 
+                      :style="{ backgroundColor: checkerResult.env?.badgeColor, color: checkerResult.env?.badgeOutlineColor, borderColor: checkerResult.env?.badgeOutlineColor }"
+                    >
+                      {{ checkerResult.env ? getEnvName(checkerResult.env) : '' }}
+                    </span> 
+                  </template>
+                  <template v-else>
+                    <i class="pi pi-times-circle text-red-500 text-2xl"></i>
+                    <span class="text-red-600 font-semibold text-lg">
+                      {{ t("urlCheckerNotMatched") }}
+                    </span>
+                  </template>
+                </div>
+              </div>
+            </div>
+          </AccordionContent>
+        </AccordionPanel>
+      </Accordion>
+
+      <!-- Environment Settings -->
+      <section id="environmentsContainer" class="env-list">
+        <EnvSection 
+          v-for="(env, index) in environments" 
+          :key="env.id"
+          v-model:envConfig="environments[index]"
+          :checkerHostname="checkerResult?.hostname || null"
+          @delete="deleteEnvironment"
+        />
+      </section>
     </div>
 
-
-    <!-- URLチェッカー -->
-    <div id="url-checker-card" class="card mb-4 overflow-hidden shadow-sm">
-      <div 
-        class="card-header bg-light d-flex align-items-center justify-content-between" 
-        @click="showUrlChecker = !showUrlChecker" 
-        style="cursor: pointer; border-bottom: none;"
-        :class="{ 'border-bottom': showUrlChecker }"
-      >
-        <h6 class="fw-bold mb-0">
-          🔍 {{ t("urlCheckerTitle") }}
-        </h6>
-        <span class="small text-muted">
-          {{ showUrlChecker ? '▲' : '▼' }}
-        </span>
-      </div>
-      
-      <div v-if="showUrlChecker" class="card-body bg-light pt-0">
-        <p class="text-muted small mb-3">
-          {{ t("urlCheckerDescription") }}
-        </p>
-        <input 
-          type="text" 
-          class="form-control mb-2" 
-          v-model="checkerUrl" 
-          :placeholder="t('urlCheckerPlaceholder')"
+    <!-- Sticky Footer -->
+    <footer class="sticky-footer">
+      <div class="container footer-content">
+        <Button 
+          id="save-button"
+          :label="t('save')"
+          icon="pi pi-save"
+          @click="saveSettings"
+          :disabled="!isDirty"
+          size="large"
+          class="save-btn px-8"
         />
-        <div style="min-height: 24px;">
-          <div v-if="checkerResult" class="d-flex align-items-center gap-2">
-            <span v-if="checkerResult.match" class="text-success fw-bold">
-              {{ t("urlCheckerMatched") }} 
-              <span 
-                class="badge" 
-                :style="{ backgroundColor: checkerResult.env?.badgeColor, color: checkerResult.env?.badgeOutlineColor, borderColor: checkerResult.env?.badgeOutlineColor, border: '1px solid' }"
-              >{{ checkerResult.env ? getEnvName(checkerResult.env) : '' }}</span> 
-            </span>
-            <span v-else class="text-danger fw-bold">
-              {{ t("urlCheckerNotMatched") }}
-            </span>
-          </div>
+        <Button 
+          :label="t('addEnvironment')"
+          icon="pi pi-plus"
+          @click="addEnvironment"
+          severity="secondary"
+          variant="text"
+          size="large"
+          class="add-btn"
+        />
+        <div v-if="isDirty" class="ms-auto flex items-center gap-2 text-orange-500 animate-pulse">
+          <i class="pi pi-exclamation-circle"></i>
+          <span class="text-sm font-medium">Unsaved changes</span>
         </div>
       </div>
-    </div>
+    </footer>
 
-    <div id="environmentsContainer">
-      <EnvSection 
-        v-for="(env, index) in environments" 
-        :key="env.id"
-        v-model:envConfig="environments[index]"
-        :checkerHostname="checkerResult?.hostname || null"
-        @delete="deleteEnvironment"
-      />
-    </div>
+    <Toast position="bottom-right" />
   </div>
-
-  <div class="sticky-footer">
-    <div class="container d-flex align-items-center gap-2">
-      <button 
-        id="save-button"
-        class="btn btn-primary" 
-        @click="saveSettings"
-        :disabled="!isDirty"
-      >
-        {{ t("save") }}
-      </button>
-      <button 
-        class="btn btn-outline-secondary" 
-        @click="addEnvironment"
-      >
-        {{ t("addEnvironment") }}
-      </button>
-    </div>
-  </div>
-
-  <Toast 
-    :show="toastShow" 
-    :message="toastMsg" 
-    :is-error="toastIsError" 
-    @close="toastShow = false" 
-  />
 </template>
 
 <style>
-/* intro.js のスタイルをグローバルに適用 */
+/* Global Styles */
 @import 'intro.js/introjs.css';
-</style>
 
-<style scoped>
-/* コンポーネント固有のスタイル */
+:root {
+  --app-bg: #f8fafc;
+  --header-height: 80px;
+  --footer-height: 80px;
+}
+
+body {
+  background-color: var(--app-bg);
+  color: #1e293b;
+  margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.app-wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.main-content {
+  padding-top: 2rem;
+  padding-bottom: calc(var(--footer-height) + 3rem);
+  flex: 1;
+}
+
+/* Header */
+.header-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 3rem;
+}
+
+.logo-area {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.logo-img {
+  width: 40px;
+  height: 40px;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+}
+
+.logo-text {
+  font-size: 1.75rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--p-primary-color), var(--p-primary-600));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.025em;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.language-select {
+  width: 130px;
+  border-radius: 10px;
+}
+
+/* Utilities */
+.mb-8 { margin-bottom: 2rem; }
+.ms-auto { margin-left: auto; }
+.flex { display: flex; }
+.items-center { align-items: center; }
+.gap-2 { gap: 0.5rem; }
+.gap-3 { gap: 0.75rem; }
+.w-full { width: 100%; }
+.rounded-xl { border-radius: 0.75rem; }
+
+.env-badge-tag {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  border: 1px solid;
+  text-transform: uppercase;
+}
+
+/* Footer */
+.sticky-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  padding: 1rem 0;
+  z-index: 1000;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.03);
+}
+
+.footer-content {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.save-btn {
+  border-radius: 12px;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(var(--p-primary-rgb), 0.3);
+}
+
+.add-btn {
+  font-weight: 600;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+/* Intro.js Customization */
+.introjs-tooltip {
+  border-radius: 16px;
+  padding: 10px;
+}
+.introjs-button {
+  border-radius: 8px;
+  text-shadow: none;
+}
 </style>
