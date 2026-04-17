@@ -567,4 +567,14 @@ body {
   border-radius: 8px;
   text-shadow: none;
 }
+
+/* intro.js実行中のみ明示的なz-indexを解除し、Chromeの描画バグを回避する（JS不要） */
+body:has(.introjs-overlay) .sticky-footer {
+  z-index: auto !important;
+}
+
+body:has(.introjs-overlay) .p-divider-content,
+body:has(.introjs-overlay) .hostname-input-field:focus {
+  z-index: auto !important;
+}
 </style>
