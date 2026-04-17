@@ -28,7 +28,7 @@ const startTour = () => {
         intro: t('tourWelcomeMsg'),
       },
       {
-        element: '#env-section-prod',
+        element: '#env-section-prod .hostname-custom-input-group',
         title: t('tourHostnameTitle'),
         intro: t('tourHostnameMsg'),
         position: 'bottom'
