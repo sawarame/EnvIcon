@@ -20,6 +20,7 @@ const emit = defineEmits<{
 const draggingIndex = ref<number | null>(null);
 const dragOverIndex = ref<number | null>(null);
 
+// --- ホスト名判定（URLチェッカープレビュー用） ---
 const isMatch = (pattern: HostnamePattern) => {
   if (!props.checkerHostname || !pattern.value.trim()) return false;
   if (pattern.isRegex) {
@@ -32,11 +33,23 @@ const isMatch = (pattern: HostnamePattern) => {
   return (getHostname(pattern.value) || pattern.value) === props.checkerHostname;
 };
 
-const addInput = () => {
-  const newList = [...props.modelValue, { value: '', isRegex: false }];
+// --- ホスト名パターンの更新・追加・削除処理 ---
+
+// 特定のインデックスのパターン値（URL文字列など）を更新する
+const updatePath = (index: number, val: string) => {
+  const newList = [...props.modelValue];
+  newList[index].value = val;
   emit('update:modelValue', newList);
 };
 
+// 正規表現（Regex）使用フラグのON/OFFを切り替える
+const updateRegex = (index: number, isRegex: boolean) => {
+  const newList = [...props.modelValue];
+  newList[index].isRegex = isRegex;
+  emit('update:modelValue', newList);
+};
+
+// 最後の1行でなければ該当の入力行を削除する
 const removeInput = (index: number) => {
   if (props.modelValue.length > 1) {
     const newList = [...props.modelValue];
@@ -45,20 +58,16 @@ const removeInput = (index: number) => {
   }
 };
 
-const updatePath = (index: number, val: string) => {
-  const newList = [...props.modelValue];
-  newList[index].value = val;
+// 新たに空のホスト名パターンを追加する
+const addInput = () => {
+  const newList = [...props.modelValue, { value: '', isRegex: false }];
   emit('update:modelValue', newList);
 };
 
-const updateRegex = (index: number, isRegex: boolean) => {
-  const newList = [...props.modelValue];
-  newList[index].isRegex = isRegex;
-  emit('update:modelValue', newList);
-};
+// --- ドラッグアンドドロップ (並び替え) 処理 ---
+// HTML5の標準API (draggable="true") を利用し、ライブラリを使わずにリストの並び替えを実現している
 
-// --- ドラッグ＆ドロップ ---
-
+// ドラッグ開始時（掴んだインデックスを保存し、見た目調整用のエフェクトを設定）
 const onDragStart = (event: DragEvent, index: number) => {
   draggingIndex.value = index;
   if (event.dataTransfer) {
@@ -83,6 +92,7 @@ const onDragLeave = (event: DragEvent, index: number) => {
   }
 };
 
+// ドラッグ中（要素が別要素上に重なったときの処理）
 const onDrop = (event: DragEvent, index: number) => {
   event.preventDefault();
   if (draggingIndex.value !== null && draggingIndex.value !== index) {
@@ -95,6 +105,7 @@ const onDrop = (event: DragEvent, index: number) => {
   dragOverIndex.value = null;
 };
 
+// ドロップ完了時・ドラッグ終了時のリセット
 const onDragEnd = () => {
   draggingIndex.value = null;
   dragOverIndex.value = null;
@@ -182,7 +193,7 @@ const onDragEnd = () => {
 .hostname-list-container {
   display: flex;
   flex-direction: column;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #cbd5e1;
   border-radius: 12px;
   overflow: hidden;
   background-color: white;
@@ -193,9 +204,13 @@ const onDragEnd = () => {
   flex-direction: column;
 }
 
+/* 
+  入力を包むラッパーコンポーネント。
+  ボーダーと少しの影でグループとして見せる。
+*/
 .hostname-row-wrapper {
   transition: background-color 0.2s;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid #cbd5e1;
   margin: 0 !important;
   padding: 0 !important;
 }
@@ -234,7 +249,7 @@ const onDragEnd = () => {
   border-left: none !important;
 }
 
-/* 1. Drag Handle Box */
+/* 1. Drag Handle Box: ドラッグ操作用のハンドルエリア */
 .drag-handle-box {
   width: 3rem;
   background-color: #f8fafc;
@@ -290,7 +305,7 @@ const onDragEnd = () => {
 /* Add Button at bottom */
 .add-button-wrapper {
   background-color: #f8fafc;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid #cbd5e1;
 }
 
 .add-hostname-modern-btn {

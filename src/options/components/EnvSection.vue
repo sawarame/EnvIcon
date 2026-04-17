@@ -25,6 +25,7 @@ const emit = defineEmits<{
   (e: 'delete', id: string): void;
 }>();
 
+// --- イベントエミッターへの連携（自身でv-modelを実現するためのロジック） ---
 const updateField = <K extends keyof EnvironmentConfig>(field: K, value: EnvironmentConfig[K]) => {
   emit('update:envConfig', { ...props.envConfig, [field]: value });
 };
@@ -55,6 +56,8 @@ const confirmResetDefault = () => {
 const isDefaultEnv = ["prod", "stg", "dev"].includes(props.envConfig.id);
 const envNameKey = props.envConfig.id === "prod" ? "ProductionName" : props.envConfig.id === "stg" ? "StagingName" : props.envConfig.id === "dev" ? "DevelopmentName" : "";
 
+// --- 多言語対応のため、Computedでオプションを定義する ---
+// 言語が切り替わった際にリアルタイムにリストの中身を再評価する
 const badgePositionOptions = computed(() => [
   { label: t('badgePosTopLeft'), value: 'top-left' },
   { label: t('badgePosTopRight'), value: 'top-right' },
@@ -239,12 +242,18 @@ const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
 </template>
 
 <style scoped>
+/* 
+  環境ごとの設定カードのスタイル
+*/
 .env-card {
   margin-bottom: 2.5rem;
   border-radius: 1rem;
   background-color: white;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
 }
 
+/* ヘッダー周りのレイアウト */
 .card-header-flex {
   display: flex;
   align-items: center;
@@ -278,9 +287,13 @@ const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
   background: #f1f5f9;
 }
 
+/* 
+  設定エリアのグリッド構成 
+  3カラムで各設定群を並べる
+*/
 .smart-settings-container {
   background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #cbd5e1;
   border-radius: 14px;
   overflow: hidden;
 }
@@ -290,13 +303,14 @@ const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
   grid-template-columns: 1fr 1fr 1fr;
 }
 
+/* モバイル向け対応（幅が狭い場合は縦並び1カラムに変更） */
 @media (max-width: 1024px) {
   .settings-grid-layout {
     grid-template-columns: 1fr;
   }
   .settings-column:not(:last-child) {
     border-right: none !important;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid #cbd5e1;
   }
 }
 
@@ -305,7 +319,7 @@ const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
 }
 
 .settings-column:not(:last-child) {
-  border-right: 1px solid #e2e8f0;
+  border-right: 1px solid #cbd5e1;
 }
 
 .group-header {
@@ -332,7 +346,7 @@ const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
   justify-content: space-between;
   padding: 1rem;
   background: white;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #cbd5e1;
   border-radius: 12px;
   gap: 1rem;
 }
@@ -350,6 +364,7 @@ const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
   filter: grayscale(0.8);
 }
 
+/* 各種ユーティリティ */
 .my-8 {
   margin-top: 2rem;
   margin-bottom: 2rem;

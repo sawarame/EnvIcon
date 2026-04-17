@@ -60,6 +60,8 @@ const startTour = () => {
 
 const environments = ref<EnvironmentConfig[]>([]);
 
+// --- URLチェッカー機能 ---
+// ユーザーが入力したURLがいずれかの環境（ホスト名や正規表現）に一致するか即座に判定する
 const checkerUrl = ref('');
 const checkerResult = computed(() => {
   const url = checkerUrl.value.trim();
@@ -104,9 +106,11 @@ const showToast = (message: string, isError: boolean = false) => {
   });
 };
 
-const isDirty = ref(false);
-let initialSettingsStr = '';
+// --- 状態管理・ダーティチェック ---
+const isDirty = ref(false); // 変更が未保存かどうかのフラグ
+let initialSettingsStr = ''; // 初期化時や保存時の状態文字列を保持
 
+// 画面表示用の内部状態（バリデーション用プロパティなど）を省いた設定オブジェクトのJSON文字列を返す
 const getUIStateString = () => {
   return JSON.stringify({
     envs: environments.value.map(env => ({
@@ -206,12 +210,14 @@ const addEnvironment = () => {
   });
 };
 
+// --- 設定の保存処理・バリデーション ---
 const saveSettings = () => {
   let hasInvalid = false;
   let hasDuplicate = false;
   let hasEmptyName = false;
   const seenPatterns = new Set<string>();
 
+  // 1. 各項目のバリデーション用フラグを初期化
   environments.value.forEach(env => {
     (env as any)._invalidName = false;
     (env as any)._invalidBadgeColor = false;
@@ -222,15 +228,18 @@ const saveSettings = () => {
     });
   });
 
+  // 2. 正規表現を用いて設定値の正しさをチェック
   const hexColorRegex = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
 
   environments.value.forEach(env => {
+    // 環境名の空チェック
     const name = env.name.trim();
     if (name === "") {
       (env as any)._invalidName = true;
       hasEmptyName = true;
     }
     
+    // 文字色・フチ色のHEX形式チェック
     if (env.badgeColor && !hexColorRegex.test(env.badgeColor.trim())) {
       (env as any)._invalidBadgeColor = true;
       hasInvalid = true;
@@ -241,6 +250,7 @@ const saveSettings = () => {
       hasInvalid = true;
     }
     
+    // フォントサイズの検証（空ではない、数値である、1〜500の範囲内）
     if (env.pageBadgeEnabled) {
       if (typeof env.pageBadgeFontSize !== 'number' || isNaN(env.pageBadgeFontSize) || env.pageBadgeFontSize < 1 || env.pageBadgeFontSize > 500) {
         (env as any)._invalidPageBadgeFontSize = true;
@@ -249,6 +259,7 @@ const saveSettings = () => {
     }
   });
 
+  // 3. ホスト名パターンの検証とデータの成形
   const envsToSave = environments.value.map(env => {
     const validHostnames = env.hostnames.filter(hn => hn.value.trim() !== "");
     const processedHostnames = validHostnames.map(hn => {
@@ -446,7 +457,10 @@ const languageOptions = [
 </template>
 
 <style>
-/* Global Styles */
+/* 
+  Global Styles 
+  全体のアセット、変数、構造を定義します。
+*/
 @import 'intro.js/introjs.css';
 
 :root {
@@ -463,18 +477,21 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* アプリケーション全体のラッパー（フッターを固定するための最小高さ確保） */
 .app-wrapper {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
 
+/* 個別のカードやコンテンツを内包するコンテナ制限 */
 .container {
   max-width: 1100px;
   margin: 0 auto;
   padding: 0 1.5rem;
 }
 
+/* メインコンテンツ（フッターの高さ分だけ下の余白を取る） */
 .main-content {
   padding-top: 2rem;
   padding-bottom: calc(var(--footer-height) + 3rem);
@@ -504,9 +521,7 @@ body {
 .logo-text {
   font-size: 1.75rem;
   font-weight: 800;
-  background: linear-gradient(135deg, var(--p-primary-color), var(--p-primary-600));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: #1e293b;
   letter-spacing: -0.025em;
 }
 
@@ -521,7 +536,10 @@ body {
   border-radius: 10px;
 }
 
-/* Utilities */
+/* 
+  Utilities 
+  Tailwindがない環境下で、HTMLのclassでレイアウトを補助するために用いるユーティリティクラス
+*/
 .mb-8 { margin-bottom: 2rem; }
 .ms-auto { margin-left: auto; }
 .flex { display: flex; }
@@ -531,6 +549,7 @@ body {
 .w-full { width: 100%; }
 .rounded-xl { border-radius: 0.75rem; }
 
+/* チェッカー等でバッジをプレビュー表示させるためのダミー要素用クラス */
 .env-badge-tag {
   display: inline-block;
   padding: 0.25rem 0.75rem;
@@ -541,7 +560,11 @@ body {
   text-transform: uppercase;
 }
 
-/* Footer */
+/* 
+  Footer
+  画面下部に常に固定表示されるボタン群（保存・追加）
+  backdrop-filterを用いて背後を透過的にぼかす
+*/
 .sticky-footer {
   position: fixed;
   bottom: 0;
@@ -590,11 +613,20 @@ body {
   text-shadow: none;
 }
 
-/* intro.js実行中のみ明示的なz-indexを解除し、Chromeの描画バグを回避する（JS不要） */
+/* 
+  intro.js実行時バグ回避用ハック
+  Chrome等の合成レイヤー処理において backdrop-filter と explicit z-index を持つ要素が
+  intro.jsの絶対配置オーバーレイ（z-index: 999999）を貫通してしまう問題を解消する。
+  `:has(.introjs-overlay)` により、ツアー中のみz-indexを自動解除（JSで状態管理しない）。
+*/
 body:has(.introjs-overlay) .sticky-footer {
   z-index: auto !important;
 }
 
+/* 
+  p-divider-content はz-index: 1を解除した代償として背後の線に埋もれてしまう（打ち消し線現象）ため、
+  position: relative を付与して描画フローを上に持ち上げる 
+*/
 body:has(.introjs-overlay) .p-divider-content {
   z-index: auto !important;
   position: relative !important;
@@ -602,5 +634,17 @@ body:has(.introjs-overlay) .p-divider-content {
 
 body:has(.introjs-overlay) .hostname-input-field:focus {
   z-index: auto !important;
+}
+
+/* 
+  URLチェッカーのカードスタイル 
+  各環境セクションと同様のボーダー・シャドウを適用する
+*/
+#url-checker-card {
+  border: 1px solid #cbd5e1;
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
+  background-color: white;
 }
 </style>
