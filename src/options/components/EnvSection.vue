@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { EnvironmentConfig, HostnamePattern } from '../../types';
 import { t } from '../i18n';
 import HostnameList from './HostnameList.vue';
@@ -54,12 +55,12 @@ const confirmResetDefault = () => {
 const isDefaultEnv = ["prod", "stg", "dev"].includes(props.envConfig.id);
 const envNameKey = props.envConfig.id === "prod" ? "ProductionName" : props.envConfig.id === "stg" ? "StagingName" : props.envConfig.id === "dev" ? "DevelopmentName" : "";
 
-const badgePositionOptions = [
+const badgePositionOptions = computed(() => [
   { label: t('badgePosTopLeft'), value: 'top-left' },
   { label: t('badgePosTopRight'), value: 'top-right' },
   { label: t('badgePosBottomLeft'), value: 'bottom-left' },
   { label: t('badgePosBottomRight'), value: 'bottom-right' },
-];
+]);
 
 const onColorChange = (field: 'badgeColor' | 'badgeOutlineColor', value: string) => {
   const hex = value.startsWith('#') ? value : `#${value}`;
