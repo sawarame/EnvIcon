@@ -73,7 +73,7 @@ const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
 </script>
 
 <template>
-  <Card :id="'env-section-' + envConfig.id" class="env-card shadow-sm border border-slate-200">
+  <Card :id="'env-section-' + envConfig.id" class="env-card">
     <template #title>
       <div class="card-header-flex px-4 pt-4">
         <div class="header-title-area">
@@ -163,7 +163,7 @@ const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
                     <InputGroupAddon>
                       <ColorPicker :modelValue="getColorValue('badgeColor')" @update:modelValue="onColorChange('badgeColor', $event as string)" />
                     </InputGroupAddon>
-                    <InputText v-model="envConfig.badgeColor" class="text-xs font-mono" @input="updateField('badgeColor', ($event.target as HTMLInputElement).value)" />
+                    <InputText v-model="envConfig.badgeColor" @input="updateField('badgeColor', ($event.target as HTMLInputElement).value)" />
                   </InputGroup>
                 </div>
 
@@ -173,7 +173,7 @@ const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
                     <InputGroupAddon>
                       <ColorPicker :modelValue="getColorValue('badgeOutlineColor')" @update:modelValue="onColorChange('badgeOutlineColor', $event as string)" />
                     </InputGroupAddon>
-                    <InputText v-model="envConfig.badgeOutlineColor" class="text-xs font-mono" @input="updateField('badgeOutlineColor', ($event.target as HTMLInputElement).value)" />
+                    <InputText v-model="envConfig.badgeOutlineColor" @input="updateField('badgeOutlineColor', ($event.target as HTMLInputElement).value)" />
                   </InputGroup>
                 </div>
               </div>
@@ -220,9 +220,9 @@ const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
         </div>
 
         <Divider align="left" class="my-8">
-          <div class="flex items-center gap-2 text-slate-400">
-            <i class="pi pi-link text-xs"></i>
-            <span class="text-xs font-bold uppercase tracking-widest">{{ t('hostnamePatterns') }}</span>
+          <div class="flex items-center gap-2">
+            <i class="pi pi-link"></i>
+            <span>{{ t('hostnamePatterns') }}</span>
           </div>
         </Divider>
 
@@ -255,15 +255,6 @@ const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
   gap: 1rem;
 }
 
-.icon-square {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid rgba(0,0,0,0.05);
-}
 
 .env-title-text {
   font-size: 1.125rem;

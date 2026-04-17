@@ -332,43 +332,43 @@ const languageOptions = [
       </header>
 
       <!-- URL Checker -->
-      <Accordion id="url-checker-card" class="mb-8 shadow-sm rounded-xl overflow-hidden">
+      <Accordion id="url-checker-card" class="mb-8">
         <AccordionPanel value="0">
           <AccordionHeader>
             <div class="flex items-center gap-3">
-              <i class="pi pi-search text-primary text-xl"></i>
-              <span class="font-bold text-lg">{{ t("urlCheckerTitle") }}</span>
+              <i class="pi pi-search"></i>
+              <span>{{ t("urlCheckerTitle") }}</span>
             </div>
           </AccordionHeader>
           <AccordionContent>
             <div class="p-2">
-              <p class="text-muted-color mb-6 leading-relaxed">
+              <p>
                 {{ t("urlCheckerDescription") }}
               </p>
               <div class="checker-input-area">
                 <InputText 
                   v-model="checkerUrl" 
                   :placeholder="t('urlCheckerPlaceholder')"
-                  class="w-full h-12 text-lg px-4"
+                  class="w-full"
                 />
               </div>
-              <div class="checker-result mt-6 min-h-[40px] flex items-center">
+              <div class="checker-result flex items-center">
                 <div v-if="checkerResult" class="flex items-center gap-3 animate-fade-in">
                   <template v-if="checkerResult.match">
-                    <i class="pi pi-check-circle text-green-500 text-2xl"></i>
-                    <span class="text-green-600 font-semibold text-lg">
+                    <i class="pi pi-check-circle"></i>
+                    <span>
                       {{ t("urlCheckerMatched") }} 
                     </span>
                     <span 
-                      class="env-badge-tag shadow-sm" 
+                      class="env-badge-tag" 
                       :style="{ backgroundColor: checkerResult.env?.badgeColor, color: checkerResult.env?.badgeOutlineColor, borderColor: checkerResult.env?.badgeOutlineColor }"
                     >
                       {{ checkerResult.env ? getEnvName(checkerResult.env) : '' }}
                     </span> 
                   </template>
                   <template v-else>
-                    <i class="pi pi-times-circle text-red-500 text-2xl"></i>
-                    <span class="text-red-600 font-semibold text-lg">
+                    <i class="pi pi-times-circle"></i>
+                    <span>
                       {{ t("urlCheckerNotMatched") }}
                     </span>
                   </template>
@@ -412,9 +412,9 @@ const languageOptions = [
           size="large"
           class="add-btn"
         />
-        <div v-if="isDirty" class="ms-auto flex items-center gap-2 text-orange-500 animate-pulse">
+        <div v-if="isDirty" class="ms-auto flex items-center gap-2">
           <i class="pi pi-exclamation-circle"></i>
-          <span class="text-sm font-medium">Unsaved changes</span>
+          <span>Unsaved changes</span>
         </div>
       </div>
     </footer>

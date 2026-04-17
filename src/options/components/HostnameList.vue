@@ -123,8 +123,8 @@ const onDragEnd = () => {
         <div class="hostname-custom-input-group">
           <!-- 1. Drag Handle -->
           <div class="drag-handle-box">
-            <i class="pi pi-ellipsis-v text-slate-300"></i>
-            <i class="pi pi-ellipsis-v text-slate-300 -ml-1"></i>
+            <i class="pi pi-ellipsis-v"></i>
+            <i class="pi pi-ellipsis-v"></i>
           </div>
 
           <!-- 2. Regex Checkbox -->
@@ -134,9 +134,8 @@ const onDragEnd = () => {
               v-model="pattern.isRegex"
               :binary="true"
               @update:modelValue="updateRegex(Number(index), $event)"
-              class="w-4 h-4"
             />
-            <label :for="'regex-' + index" class="text-xs font-bold text-slate-500 cursor-pointer select-none uppercase tracking-tight">
+            <label :for="'regex-' + index">
               {{ t('regex') }}
             </label>
           </div>
@@ -314,6 +313,4 @@ const onDragEnd = () => {
 :deep(.p-checkbox-box) {
   border-radius: 4px !important;
 }
-
-.-ml-1 { margin-left: -0.25rem; }
 </style>
