@@ -28,6 +28,12 @@ const startTour = () => {
         intro: t('tourWelcomeMsg'),
       },
       {
+        element: '#env-section-prod .smart-settings-container',
+        title: t('tourBadgeTitle'),
+        intro: t('tourBadgeMsg'),
+        position: 'bottom'
+      },
+      {
         element: '#env-section-prod .hostname-custom-input-group',
         title: t('tourHostnameTitle'),
         intro: t('tourHostnameMsg'),
@@ -37,6 +43,12 @@ const startTour = () => {
         element: '#url-checker-card',
         title: t('tourCheckerTitle'),
         intro: t('tourCheckerMsg'),
+      },
+      {
+        element: '#add-env-button',
+        title: t('tourAddEnvTitle'),
+        intro: t('tourAddEnvMsg'),
+        position: 'top'
       },
       {
         element: '#save-button',
@@ -437,6 +449,7 @@ const languageOptions = [
           class="save-btn px-8"
         />
         <Button 
+          id="add-env-button"
           :label="t('addEnvironment')"
           icon="pi pi-plus"
           @click="addEnvironment"
