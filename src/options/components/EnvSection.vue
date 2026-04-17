@@ -164,7 +164,7 @@ const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
                     <InputGroupAddon>
                       <ColorPicker :modelValue="getColorValue('badgeColor')" @update:modelValue="onColorChange('badgeColor', $event as string)" />
                     </InputGroupAddon>
-                    <InputText v-model="envConfig.badgeColor" @input="updateField('badgeColor', ($event.target as HTMLInputElement).value)" />
+                    <InputText v-model="envConfig.badgeColor" :class="{ 'p-invalid': (envConfig as any)._invalidBadgeColor }" @input="updateField('badgeColor', ($event.target as HTMLInputElement).value)" />
                   </InputGroup>
                 </div>
 
@@ -174,7 +174,7 @@ const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
                     <InputGroupAddon>
                       <ColorPicker :modelValue="getColorValue('badgeOutlineColor')" @update:modelValue="onColorChange('badgeOutlineColor', $event as string)" />
                     </InputGroupAddon>
-                    <InputText v-model="envConfig.badgeOutlineColor" @input="updateField('badgeOutlineColor', ($event.target as HTMLInputElement).value)" />
+                    <InputText v-model="envConfig.badgeOutlineColor" :class="{ 'p-invalid': (envConfig as any)._invalidBadgeOutlineColor }" @input="updateField('badgeOutlineColor', ($event.target as HTMLInputElement).value)" />
                   </InputGroup>
                 </div>
               </div>
@@ -208,6 +208,7 @@ const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
                     showButtons
                     buttonLayout="horizontal"
                     class="w-full font-size-input-field"
+                    :class="{ 'p-invalid': (envConfig as any)._invalidPageBadgeFontSize }"
                     :disabled="!envConfig.pageBadgeEnabled"
                     @update:modelValue="updateField('pageBadgeFontSize', $event || 24)"
                   >

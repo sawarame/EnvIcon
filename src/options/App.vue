@@ -214,16 +214,38 @@ const saveSettings = () => {
 
   environments.value.forEach(env => {
     (env as any)._invalidName = false;
+    (env as any)._invalidBadgeColor = false;
+    (env as any)._invalidBadgeOutlineColor = false;
+    (env as any)._invalidPageBadgeFontSize = false;
     env.hostnames.forEach(hn => {
       (hn as any)._invalid = false;
     });
   });
+
+  const hexColorRegex = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
 
   environments.value.forEach(env => {
     const name = env.name.trim();
     if (name === "") {
       (env as any)._invalidName = true;
       hasEmptyName = true;
+    }
+    
+    if (env.badgeColor && !hexColorRegex.test(env.badgeColor.trim())) {
+      (env as any)._invalidBadgeColor = true;
+      hasInvalid = true;
+    }
+    
+    if (env.badgeOutlineColor && !hexColorRegex.test(env.badgeOutlineColor.trim())) {
+      (env as any)._invalidBadgeOutlineColor = true;
+      hasInvalid = true;
+    }
+    
+    if (env.pageBadgeEnabled) {
+      if (typeof env.pageBadgeFontSize !== 'number' || isNaN(env.pageBadgeFontSize) || env.pageBadgeFontSize < 1 || env.pageBadgeFontSize > 500) {
+        (env as any)._invalidPageBadgeFontSize = true;
+        hasInvalid = true;
+      }
     }
   });
 
