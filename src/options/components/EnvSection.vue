@@ -122,7 +122,7 @@ const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
             <div class="settings-column toggles-col">
               <div class="group-header">
                 <i class="pi pi-bolt"></i>
-                <span>Features</span>
+                <span>{{ t('featuresTitle') }}</span>
               </div>
               <div class="column-content">
                 <div class="toggle-row-item">

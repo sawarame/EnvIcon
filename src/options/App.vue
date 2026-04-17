@@ -573,7 +573,11 @@ body:has(.introjs-overlay) .sticky-footer {
   z-index: auto !important;
 }
 
-body:has(.introjs-overlay) .p-divider-content,
+body:has(.introjs-overlay) .p-divider-content {
+  z-index: auto !important;
+  position: relative !important;
+}
+
 body:has(.introjs-overlay) .hostname-input-field:focus {
   z-index: auto !important;
 }
