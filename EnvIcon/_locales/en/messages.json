@@ -4,7 +4,7 @@
     "description": "The name of the extension."
   },
   "appDesc": {
-    "message": "Identify PROD/STG/DEV environments with favicon badges. Prevent accidental production operations. Supports regex matching.",
+    "message": "Easily distinguish Development, Staging, and Production environments with customizable favicon overlays and on-page badges.",
     "description": "The description of the extension."
   }
 }
