@@ -397,7 +397,7 @@ const languageOptions = [
                   class="w-full"
                 />
               </div>
-              <div class="checker-result flex items-center">
+              <div class="checker-result flex items-center mt-4" style="min-height: 1.5rem;">
                 <div v-if="checkerResult" class="flex items-center gap-3 animate-fade-in">
                   <template v-if="checkerResult.match">
                     <i class="pi pi-check-circle"></i>
@@ -554,6 +554,7 @@ body {
   Tailwindがない環境下で、HTMLのclassでレイアウトを補助するために用いるユーティリティクラス
 */
 .mb-8 { margin-bottom: 2rem; }
+.mt-4 { margin-top: 1rem; }
 .ms-auto { margin-left: auto; }
 .flex { display: flex; }
 .items-center { align-items: center; }
