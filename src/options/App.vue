@@ -67,6 +67,17 @@ const startTour = () => {
     chrome.storage.local.set({ tutorialCompleted: true });
   });
 
+  // フッターのボタン（position: fixedな要素）の場合、intro.jsがスクロール位置を誤判定して
+  // 下に少しずつスクロールし続ける不具合を防ぐため、スクロールを無効化する
+  intro.onbeforechange((targetElement) => {
+    if (targetElement.id === 'add-env-button' || targetElement.id === 'save-button') {
+      intro.setOptions({ scrollToElement: false });
+    } else {
+      intro.setOptions({ scrollToElement: true });
+    }
+    return true;
+  });
+
   intro.start();
 };
 
