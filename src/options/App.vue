@@ -15,8 +15,83 @@ import AccordionPanel from 'primevue/accordionpanel';
 import AccordionHeader from 'primevue/accordionheader';
 import AccordionContent from 'primevue/accordioncontent';
 import Toast from 'primevue/toast';
+import Menu from 'primevue/menu';
 
 const toast = useToast();
+
+const menu = ref();
+const fileInput = ref<HTMLInputElement | null>(null);
+
+const toggleMenu = (event: Event) => {
+  menu.value.toggle(event);
+};
+
+const menuItems = computed(() => [
+  {
+    label: t('exportSettings'),
+    icon: 'pi pi-upload',
+    command: () => handleExport()
+  },
+  {
+    label: t('importSettings'),
+    icon: 'pi pi-download',
+    command: () => {
+      fileInput.value?.click();
+    }
+  }
+]);
+
+const handleExport = () => {
+  const dataToExport = { environments: environments.value };
+  const dataStr = JSON.stringify(dataToExport, null, 2);
+  const blob = new Blob([dataStr], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  
+  const now = new Date();
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  const yyyy = now.getFullYear();
+  const mm = pad(now.getMonth() + 1);
+  const dd = pad(now.getDate());
+  const hh = pad(now.getHours());
+  const min = pad(now.getMinutes());
+  const ss = pad(now.getSeconds());
+  const filename = `EnvIcon_${yyyy}${mm}${dd}${hh}${min}${ss}.json`;
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+
+const handleImportFile = (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  const file = target.files?.[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const content = e.target?.result as string;
+      const parsed = JSON.parse(content);
+      
+      if (!parsed || !parsed.environments || !Array.isArray(parsed.environments)) {
+        throw new Error("Invalid format");
+      }
+      
+      environments.value = parsed.environments;
+      isDirty.value = true;
+      showToast(t('importSuccess'), false);
+    } catch (err) {
+      showToast(t('importError'), true);
+    } finally {
+      target.value = '';
+    }
+  };
+  reader.readAsText(file);
+};
 
 // --- チュートリアルに関する関数 ---
 const startTour = () => {
@@ -384,6 +459,18 @@ const languageOptions = [
             class="language-select"
             variant="filled"
           />
+          <Button 
+            type="button" 
+            icon="pi pi-bars" 
+            @click="toggleMenu" 
+            aria-haspopup="true" 
+            aria-controls="overlay_menu" 
+            rounded 
+            text 
+            severity="secondary" 
+          />
+          <Menu ref="menu" id="overlay_menu" :model="menuItems" :popup="true" />
+          <input type="file" ref="fileInput" accept=".json" style="display: none" @change="handleImportFile" />
         </div>
       </header>
 

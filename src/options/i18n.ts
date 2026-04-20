@@ -64,6 +64,10 @@ export const i18nConfig = {
     tourNext: "Next",
     tourPrev: "Back",
     tourFinish: "Done",
+    exportSettings: "Export Settings",
+    importSettings: "Import Settings",
+    importError: "Error: Invalid settings format.",
+    importSuccess: "Settings imported successfully.",
   },
   ja: {
     enableFavicon: "Favicon書き換えを有効にする",
@@ -125,6 +129,10 @@ export const i18nConfig = {
     tourNext: "次へ",
     tourPrev: "戻る",
     tourFinish: "完了",
+    exportSettings: "設定をエクスポート",
+    importSettings: "設定をインポート",
+    importError: "エラー: 読み込んだファイルは不正なフォーマットです。",
+    importSuccess: "設定をインポートしました。",
   },
 };
 
