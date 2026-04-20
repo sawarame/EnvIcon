@@ -68,6 +68,7 @@ export const i18nConfig = {
     importSettings: "Import Settings",
     importError: "Error: Invalid settings format.",
     importSuccess: "Settings imported successfully.",
+    changeLanguage: "Change Language",
   },
   ja: {
     enableFavicon: "Favicon書き換えを有効にする",
@@ -133,6 +134,7 @@ export const i18nConfig = {
     importSettings: "設定をインポート",
     importError: "エラー: 読み込んだファイルは不正なフォーマットです。",
     importSuccess: "設定をインポートしました。",
+    changeLanguage: "言語切り替え",
   },
 };
 

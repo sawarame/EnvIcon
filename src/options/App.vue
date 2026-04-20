@@ -16,10 +16,12 @@ import AccordionHeader from 'primevue/accordionheader';
 import AccordionContent from 'primevue/accordioncontent';
 import Toast from 'primevue/toast';
 import Menu from 'primevue/menu';
+import Dialog from 'primevue/dialog';
 
 const toast = useToast();
 
 const menu = ref();
+const showLanguageDialog = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
 
 const toggleMenu = (event: Event) => {
@@ -27,6 +29,13 @@ const toggleMenu = (event: Event) => {
 };
 
 const menuItems = computed(() => [
+  {
+    label: t('changeLanguage'),
+    icon: 'pi pi-globe',
+    command: () => {
+      showLanguageDialog.value = true;
+    }
+  },
   {
     label: t('exportSettings'),
     icon: 'pi pi-upload',
@@ -450,15 +459,6 @@ const languageOptions = [
             @click="startTour"
             :title="t('tourWelcomeTitle')"
           />
-          <Select 
-            v-model="currentLanguage" 
-            :options="languageOptions" 
-            optionLabel="label" 
-            optionValue="value"
-            @update:modelValue="onLanguageChange"
-            class="language-select"
-            variant="filled"
-          />
           <Button 
             type="button" 
             icon="pi pi-bars" 
@@ -562,6 +562,20 @@ const languageOptions = [
         </div>
       </div>
     </footer>
+
+    <Dialog v-model:visible="showLanguageDialog" :header="t('changeLanguage')" :modal="true" :style="{ width: '25rem' }">
+      <div style="display: flex; flex-direction: column; gap: 1rem; padding: 1rem 0;">
+        <Select 
+          v-model="currentLanguage" 
+          :options="languageOptions" 
+          optionLabel="label" 
+          optionValue="value"
+          @update:modelValue="onLanguageChange"
+          class="w-full"
+          variant="filled"
+        />
+      </div>
+    </Dialog>
 
     <Toast position="bottom-right" />
   </div>
