@@ -23,6 +23,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'update:envConfig', value: EnvironmentConfig): void;
   (e: 'delete', id: string): void;
+  (e: 'undo'): void;
 }>();
 
 // --- イベントエミッターへの連携（自身でv-modelを実現するためのロジック） ---
@@ -38,19 +39,8 @@ const deleteSection = () => {
   emit('delete', props.envConfig.id);
 };
 
-const confirmResetDefault = () => {
-  const { id } = props.envConfig;
-  const badgeText = id === "prod" ? "prod" : id === "stg" ? "stg" : id === "dev" ? "dev" : props.envConfig.name.substring(0, 4).toLowerCase();
-  const badgeColor = id === "prod" ? "#ff0000" : id === "stg" ? "#0000ff" : id === "dev" ? "#008000" : "#888888";
-  
-  emit('update:envConfig', { 
-    ...props.envConfig, 
-    badgeText, 
-    badgeColor, 
-    badgeOutlineColor: "#ffffff",
-    pageBadgePosition: "bottom-right",
-    pageBadgeFontSize: 24,
-  });
+const undoChanges = () => {
+  emit('undo');
 };
 
 const isDefaultEnv = ["prod", "stg", "dev"].includes(props.envConfig.id);
@@ -98,11 +88,12 @@ const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
         
         <div class="flex items-center gap-2">
            <Button 
-            icon="pi pi-refresh" 
+            icon="pi pi-undo" 
             text 
             rounded
             severity="secondary"
-            @click="confirmResetDefault"
+            @click="undoChanges"
+            :title="t('undoChanges')"
           />
           <Button 
             v-if="envConfig.isDeletable" 

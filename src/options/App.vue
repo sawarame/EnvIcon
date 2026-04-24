@@ -249,6 +249,32 @@ const checkDirtyState = () => {
   isDirty.value = getUIStateString() !== initialSettingsStr;
 };
 
+const undoChanges = (envId: string) => {
+  if (!initialSettingsStr) return;
+  try {
+    const initialData = JSON.parse(initialSettingsStr);
+    const originalEnv = initialData.envs.find((e: any) => e.id === envId);
+    
+    if (originalEnv) {
+      const index = environments.value.findIndex(e => e.id === envId);
+      if (index !== -1) {
+        // Deep copy to avoid reference issues
+        environments.value[index] = JSON.parse(JSON.stringify(originalEnv));
+        // Ensure at least one hostname field exists
+        if (!environments.value[index].hostnames || environments.value[index].hostnames.length === 0) {
+          environments.value[index].hostnames = [{ value: '', isRegex: false }];
+        }
+        checkDirtyState();
+      }
+    } else {
+      // If it's a new environment that wasn't in initialSettings, we might want to remove it or just ignore
+      // For now, let's just ignore or we could delete it if the user expects "undo" to revert "add"
+    }
+  } catch (err) {
+    console.error("Failed to undo changes:", err);
+  }
+};
+
 watch(environments, checkDirtyState, { deep: true });
 
 onMounted(() => {
@@ -571,6 +597,7 @@ const saveSettings = () => {
           v-model:envConfig="environments[index]"
           :checkerHostname="checkerResult?.hostname || null"
           @delete="deleteEnvironment"
+          @undo="undoChanges(env.id)"
         />
       </section>
     </div>

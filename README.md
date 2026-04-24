@@ -50,3 +50,27 @@ npm run build
 ```
 
 This will compile the TypeScript source files and generate the final extension package in the `EnvIcon` directory, as well as a `EnvIcon.zip` file for distribution.
+
+### Resetting All Settings (for Testing/Development)
+
+If you need to clear all saved configurations and return the extension to its initial state during testing, follow these steps:
+
+1. Open the extension **Options** page.
+2. Press `F12` (or `Cmd+Option+I` on Mac) to open the **Developer Tools**.
+3. Go to the **Console** tab.
+4. Copy and paste the following code and press `Enter`:
+
+```javascript
+chrome.storage.sync.clear(() => {
+  chrome.storage.local.clear(() => {
+    console.log('All data cleared. Reloading page...');
+    location.reload();
+  });
+});
+```
+
+This will clear all environment configs, language settings, dark mode preferences, and tutorial completion status.
+
+## License
+
+MIT
