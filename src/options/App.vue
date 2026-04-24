@@ -24,6 +24,18 @@ const menu = ref();
 const showLanguageDialog = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
 
+const isDarkMode = ref(false);
+
+const toggleDarkMode = () => {
+  isDarkMode.value = !isDarkMode.value;
+  if (isDarkMode.value) {
+    document.documentElement.classList.add('my-app-dark');
+  } else {
+    document.documentElement.classList.remove('my-app-dark');
+  }
+  chrome.storage.local.set({ darkMode: isDarkMode.value });
+};
+
 const toggleMenu = (event: Event) => {
   menu.value.toggle(event);
 };
@@ -234,7 +246,7 @@ const checkDirtyState = () => {
 watch(environments, checkDirtyState, { deep: true });
 
 onMounted(() => {
-  chrome.storage.local.get(["language", "tutorialCompleted"], (localData) => {
+  chrome.storage.local.get(["language", "tutorialCompleted", "darkMode"], (localData) => {
     let lang: Language = "en";
     if (localData.language === "ja" || localData.language === "en") {
       lang = localData.language;
@@ -242,6 +254,15 @@ onMounted(() => {
       lang = navigator.language.startsWith("ja") ? "ja" : "en";
     }
     setLanguage(lang);
+
+    if (typeof localData.darkMode === 'boolean') {
+      isDarkMode.value = localData.darkMode;
+    } else {
+      isDarkMode.value = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    if (isDarkMode.value) {
+      document.documentElement.classList.add('my-app-dark');
+    }
 
     chrome.storage.sync.get(null, (data: SyncData) => {
       const defaultEnvs: EnvironmentConfig[] = [
@@ -461,6 +482,15 @@ const languageOptions = [
           />
           <Button 
             type="button" 
+            :icon="isDarkMode ? 'pi pi-sun' : 'pi pi-moon'" 
+            @click="toggleDarkMode" 
+            rounded 
+            text 
+            severity="secondary" 
+            :title="isDarkMode ? t('lightMode') : t('darkMode')" 
+          />
+          <Button 
+            type="button" 
             icon="pi pi-bars" 
             @click="toggleMenu" 
             aria-haspopup="true" 
@@ -581,196 +611,4 @@ const languageOptions = [
   </div>
 </template>
 
-<style>
-/* 
-  Global Styles 
-  全体のアセット、変数、構造を定義します。
-*/
-@import 'intro.js/introjs.css';
-
-:root {
-  --app-bg: #f8fafc;
-  --header-height: 80px;
-  --footer-height: 80px;
-}
-
-body {
-  background-color: var(--app-bg);
-  color: #1e293b;
-  margin: 0;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-}
-
-/* アプリケーション全体のラッパー（フッターを固定するための最小高さ確保） */
-.app-wrapper {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-/* 個別のカードやコンテンツを内包するコンテナ制限 */
-.container {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 0 1.5rem;
-}
-
-/* メインコンテンツ（フッターの高さ分だけ下の余白を取る） */
-.main-content {
-  padding-top: 2rem;
-  padding-bottom: calc(var(--footer-height) + 3rem);
-  flex: 1;
-}
-
-/* Header */
-.header-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 3rem;
-}
-
-.logo-area {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.logo-img {
-  width: 40px;
-  height: 40px;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
-}
-
-.logo-text {
-  font-size: 1.75rem;
-  font-weight: 800;
-  color: #1e293b;
-  letter-spacing: -0.025em;
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.language-select {
-  width: 130px;
-  border-radius: 10px;
-}
-
-/* 
-  Utilities 
-  Tailwindがない環境下で、HTMLのclassでレイアウトを補助するために用いるユーティリティクラス
-*/
-.mb-8 { margin-bottom: 2rem; }
-.mt-4 { margin-top: 1rem; }
-.ms-auto { margin-left: auto; }
-.flex { display: flex; }
-.items-center { align-items: center; }
-.gap-2 { gap: 0.5rem; }
-.gap-3 { gap: 0.75rem; }
-.w-full { width: 100%; }
-.rounded-xl { border-radius: 0.75rem; }
-
-/* チェッカー等でバッジをプレビュー表示させるためのダミー要素用クラス */
-.env-badge-tag {
-  display: inline-block;
-  padding: 0.25rem 0.75rem;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  font-weight: 700;
-  border: 1px solid;
-  text-transform: uppercase;
-}
-
-/* 
-  Footer
-  画面下部に常に固定表示されるボタン群（保存・追加）
-  backdrop-filterを用いて背後を透過的にぼかす
-*/
-.sticky-footer {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background-color: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(12px);
-  border-top: 1px solid rgba(0, 0, 0, 0.05);
-  padding: 1rem 0;
-  z-index: 1000;
-  box-shadow: 0 -4px 20px rgba(0,0,0,0.03);
-}
-
-.footer-content {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-}
-
-.save-btn {
-  border-radius: 12px;
-  font-weight: 600;
-  box-shadow: 0 4px 12px rgba(var(--p-primary-rgb), 0.3);
-}
-
-.add-btn {
-  font-weight: 600;
-}
-
-/* Animations */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(5px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-out forwards;
-}
-
-/* Intro.js Customization */
-.introjs-tooltip {
-  border-radius: 16px;
-  padding: 10px;
-}
-.introjs-button {
-  border-radius: 8px;
-  text-shadow: none;
-}
-
-/* 
-  intro.js実行時バグ回避用ハック
-  Chrome等の合成レイヤー処理において backdrop-filter と explicit z-index を持つ要素が
-  intro.jsの絶対配置オーバーレイ（z-index: 999999）を貫通してしまう問題を解消する。
-  `:has(.introjs-overlay)` により、ツアー中のみz-indexを自動解除（JSで状態管理しない）。
-*/
-body:has(.introjs-overlay) .sticky-footer {
-  z-index: auto !important;
-}
-
-/* 
-  p-divider-content はz-index: 1を解除した代償として背後の線に埋もれてしまう（打ち消し線現象）ため、
-  position: relative を付与して描画フローを上に持ち上げる 
-*/
-body:has(.introjs-overlay) .p-divider-content {
-  z-index: auto !important;
-  position: relative !important;
-}
-
-body:has(.introjs-overlay) .hostname-input-field:focus {
-  z-index: auto !important;
-}
-
-/* 
-  URLチェッカーのカードスタイル 
-  各環境セクションと同様のボーダー・シャドウを適用する
-*/
-#url-checker-card {
-  border: 1px solid #cbd5e1;
-  border-radius: 1rem;
-  overflow: hidden;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
-  background-color: white;
-}
-</style>
+<style src="./App.css"></style>

@@ -69,6 +69,8 @@ export const i18nConfig = {
     importError: "Error: Invalid settings format.",
     importSuccess: "Settings imported successfully.",
     changeLanguage: "Change Language",
+    darkMode: "Dark Mode",
+    lightMode: "Light Mode",
   },
   ja: {
     enableFavicon: "Favicon書き換えを有効にする",
@@ -135,6 +137,8 @@ export const i18nConfig = {
     importError: "エラー: 読み込んだファイルは不正なフォーマットです。",
     importSuccess: "設定をインポートしました。",
     changeLanguage: "言語切り替え",
+    darkMode: "ダークモード",
+    lightMode: "ライトモード",
   },
 };
 

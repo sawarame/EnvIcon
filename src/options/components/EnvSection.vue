@@ -248,8 +248,8 @@ const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
 .env-card {
   margin-bottom: 2.5rem;
   border-radius: 1rem;
-  background-color: white;
-  border: 1px solid #cbd5e1;
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
 }
 
@@ -270,7 +270,7 @@ const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
 .env-title-text {
   font-size: 1.125rem;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--text-primary);
 }
 
 .env-name-input-styled {
@@ -284,7 +284,7 @@ const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
 }
 
 .env-name-input-styled:hover, .env-name-input-styled:focus {
-  background: #f1f5f9;
+  background: var(--item-bg-hover);
 }
 
 /* 
@@ -292,8 +292,8 @@ const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
   3カラムで各設定群を並べる
 */
 .smart-settings-container {
-  background: #f8fafc;
-  border: 1px solid #cbd5e1;
+  background: var(--item-bg);
+  border: 1px solid var(--border-color);
   border-radius: 14px;
   overflow: hidden;
 }
@@ -310,7 +310,7 @@ const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
   }
   .settings-column:not(:last-child) {
     border-right: none !important;
-    border-bottom: 1px solid #cbd5e1;
+    border-bottom: 1px solid var(--border-color);
   }
 }
 
@@ -319,7 +319,7 @@ const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
 }
 
 .settings-column:not(:last-child) {
-  border-right: 1px solid #cbd5e1;
+  border-right: 1px solid var(--border-color);
 }
 
 .group-header {
@@ -328,7 +328,7 @@ const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
   gap: 0.5rem;
   font-size: 0.75rem;
   font-weight: 800;
-  color: #94a3b8;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.1em;
   margin-bottom: 1.5rem;
@@ -345,8 +345,8 @@ const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
   align-items: center;
   justify-content: space-between;
   padding: 1rem;
-  background: white;
-  border: 1px solid #cbd5e1;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
   gap: 1rem;
 }
@@ -355,7 +355,7 @@ const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
   display: block;
   font-size: 0.75rem;
   font-weight: 700;
-  color: #64748b;
+  color: var(--text-secondary);
   margin-bottom: 0.5rem;
 }
 

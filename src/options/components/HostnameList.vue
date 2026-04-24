@@ -192,10 +192,10 @@ const onDragEnd = () => {
 .hostname-list-container {
   display: flex;
   flex-direction: column;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-color);
   border-radius: 12px;
   overflow: hidden;
-  background-color: white;
+  background-color: var(--card-bg);
 }
 
 .hostname-rows-group {
@@ -209,7 +209,7 @@ const onDragEnd = () => {
 */
 .hostname-row-wrapper {
   transition: background-color 0.2s;
-  border-bottom: 1px solid #cbd5e1;
+  border-bottom: 1px solid var(--border-color);
   margin: 0 !important;
   padding: 0 !important;
 }
@@ -228,7 +228,7 @@ const onDragEnd = () => {
   display: flex;
   align-items: stretch;
   height: 2.75rem; /* 44px */
-  background: white;
+  background: var(--card-bg);
 }
 
 /* Common styling for all group items to ensure they stick together */
@@ -237,7 +237,7 @@ const onDragEnd = () => {
 .hostname-input-field,
 .remove-item-btn {
   border: none !important;
-  border-left: 1px solid #cbd5e1 !important; /* Visible divider color */
+  border-left: 1px solid var(--border-color) !important; /* Visible divider color */
   border-radius: 0 !important;
   margin: 0 !important;
   box-shadow: none !important;
@@ -251,7 +251,7 @@ const onDragEnd = () => {
 /* 1. Drag Handle Box: ドラッグ操作用のハンドルエリア */
 .drag-handle-box {
   width: 3rem;
-  background-color: #f8fafc;
+  background-color: var(--item-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -261,7 +261,7 @@ const onDragEnd = () => {
 
 /* 2. Regex Addon Box */
 .regex-addon-box {
-  background-color: #f8fafc;
+  background-color: var(--item-bg);
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -276,14 +276,15 @@ const onDragEnd = () => {
   font-size: 0.875rem;
 }
 .hostname-input-field:focus {
-  z-index: 1;
-  background-color: #fff;
+  z-index: 2;
+  background-color: transparent;
+  box-shadow: inset 0 0 0 1px var(--p-primary-color) !important;
 }
 
 /* Match Success State for Input */
 .match-success {
-  background-color: #f0fdf4 !important;
-  color: #166534 !important;
+  background-color: var(--success-bg) !important;
+  color: var(--success-text) !important;
   font-weight: 600;
 }
 
@@ -298,13 +299,13 @@ const onDragEnd = () => {
 }
 .remove-item-btn:hover:not(:disabled) {
   opacity: 1;
-  background-color: #fef2f2 !important;
+  background-color: var(--danger-bg-hover) !important;
 }
 
 /* Add Button at bottom */
 .add-button-wrapper {
-  background-color: #f8fafc;
-  border-top: 1px solid #cbd5e1;
+  background-color: var(--item-bg);
+  border-top: 1px solid var(--border-color);
 }
 
 .add-hostname-modern-btn {
@@ -314,13 +315,13 @@ const onDragEnd = () => {
   font-size: 0.8125rem;
   letter-spacing: 0.05em;
   padding: 1rem !important;
-  color: #64748b !important;
+  color: var(--text-secondary) !important;
   border-radius: 0 !important;
   transition: all 0.2s;
 }
 
 .add-hostname-modern-btn:hover {
-  background-color: white !important;
+  background-color: var(--card-bg) !important;
   color: var(--p-primary-color) !important;
 }
 
