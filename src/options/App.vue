@@ -8,20 +8,17 @@ import introJs from 'intro.js';
 import { useToast } from 'primevue/usetoast';
 
 import Button from 'primevue/button';
-import Select from 'primevue/select';
 import InputText from 'primevue/inputtext';
 import Accordion from 'primevue/accordion';
 import AccordionPanel from 'primevue/accordionpanel';
 import AccordionHeader from 'primevue/accordionheader';
 import AccordionContent from 'primevue/accordioncontent';
 import Toast from 'primevue/toast';
-import Menu from 'primevue/menu';
-import Dialog from 'primevue/dialog';
+import TieredMenu from 'primevue/tieredmenu';
 
 const toast = useToast();
 
 const menu = ref();
-const showLanguageDialog = ref(false);
 const fileInput = ref<HTMLInputElement | null>(null);
 
 const isDarkMode = ref(false);
@@ -44,9 +41,18 @@ const menuItems = computed(() => [
   {
     label: t('changeLanguage'),
     icon: 'pi pi-globe',
-    command: () => {
-      showLanguageDialog.value = true;
-    }
+    items: [
+      {
+        label: 'English',
+        isLangCheck: currentLanguage.value === 'en',
+        command: () => onLanguageChange('en')
+      },
+      {
+        label: '日本語',
+        isLangCheck: currentLanguage.value === 'ja',
+        command: () => onLanguageChange('ja')
+      }
+    ]
   },
   {
     label: t('exportSettings'),
@@ -456,10 +462,6 @@ const saveSettings = () => {
   });
 };
 
-const languageOptions = [
-  { label: 'English', value: 'en' },
-  { label: '日本語', value: 'ja' }
-];
 </script>
 
 <template>
@@ -499,7 +501,16 @@ const languageOptions = [
             text 
             severity="secondary" 
           />
-          <Menu ref="menu" id="overlay_menu" :model="menuItems" :popup="true" />
+          <TieredMenu ref="menu" id="overlay_menu" :model="menuItems" :popup="true">
+            <template #item="{ item, props, hasSubmenu }: any">
+              <a v-bind="props.action" class="flex items-center gap-2 w-full">
+                <span v-if="item.icon" :class="item.icon" class="p-menuitem-icon" style="margin-right: 0.5rem;"></span>
+                <span class="p-menuitem-text">{{ item.label }}</span>
+                <span v-if="item.isLangCheck" class="pi pi-check" style="font-size: 0.75rem; color: var(--p-primary-color); margin-left: 0.25rem;"></span>
+                <span v-if="hasSubmenu" class="pi pi-angle-right ms-auto"></span>
+              </a>
+            </template>
+          </TieredMenu>
           <input type="file" ref="fileInput" accept=".json" style="display: none" @change="handleImportFile" />
         </div>
       </header>
@@ -592,20 +603,6 @@ const languageOptions = [
         </div>
       </div>
     </footer>
-
-    <Dialog v-model:visible="showLanguageDialog" :header="t('changeLanguage')" :modal="true" :style="{ width: '25rem' }">
-      <div style="display: flex; flex-direction: column; gap: 1rem; padding: 1rem 0;">
-        <Select 
-          v-model="currentLanguage" 
-          :options="languageOptions" 
-          optionLabel="label" 
-          optionValue="value"
-          @update:modelValue="onLanguageChange"
-          class="w-full"
-          variant="filled"
-        />
-      </div>
-    </Dialog>
 
     <Toast position="bottom-right" />
   </div>
