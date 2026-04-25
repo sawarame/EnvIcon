@@ -2,6 +2,7 @@ import { createApp } from 'vue';
 import PrimeVue from 'primevue/config';
 import Aura from '@primeuix/themes/aura';
 import ToastService from 'primevue/toastservice';
+import ConfirmationService from 'primevue/confirmationservice';
 import App from './options/App.vue';
 
 // PrimeVueのスタイル（アイコンなど）
@@ -17,5 +18,6 @@ app.use(PrimeVue, {
     }
 });
 app.use(ToastService);
+app.use(ConfirmationService);
 app.mount('#app');
 

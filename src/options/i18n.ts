@@ -72,6 +72,10 @@ export const i18nConfig = {
     changeLanguage: "Change Language",
     darkMode: "Dark Mode",
     lightMode: "Light Mode",
+    deleteConfirmTitle: "Delete Environment",
+    deleteConfirmMessage: "Are you sure you want to delete this environment? This action cannot be undone until you save or reload.",
+    confirmYes: "Yes, Delete",
+    confirmNo: "Cancel",
   },
   ja: {
     enableFavicon: "Favicon書き換えを有効にする",
@@ -141,6 +145,10 @@ export const i18nConfig = {
     changeLanguage: "言語切り替え",
     darkMode: "ダークモード",
     lightMode: "ライトモード",
+    deleteConfirmTitle: "環境の削除",
+    deleteConfirmMessage: "この環境を削除してもよろしいですか？（保存するまでは元に戻せます）",
+    confirmYes: "削除する",
+    confirmNo: "キャンセル",
   },
 };
 

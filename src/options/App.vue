@@ -6,6 +6,7 @@ import { getHostname } from './utils';
 import EnvSection from './components/EnvSection.vue';
 import introJs from 'intro.js';
 import { useToast } from 'primevue/usetoast';
+import { useConfirm } from 'primevue/useconfirm';
 
 import Button from 'primevue/button';
 import InputText from 'primevue/inputtext';
@@ -15,8 +16,10 @@ import AccordionHeader from 'primevue/accordionheader';
 import AccordionContent from 'primevue/accordioncontent';
 import Toast from 'primevue/toast';
 import TieredMenu from 'primevue/tieredmenu';
+import ConfirmDialog from 'primevue/confirmdialog';
 
 const toast = useToast();
+const confirm = useConfirm();
 
 const menu = ref();
 const fileInput = ref<HTMLInputElement | null>(null);
@@ -342,7 +345,23 @@ const onLanguageChange = (val: Language) => {
 };
 
 const deleteEnvironment = (id: string) => {
-  environments.value = environments.value.filter(env => env.id !== id);
+  confirm.require({
+    message: t('deleteConfirmMessage'),
+    header: t('deleteConfirmTitle'),
+    icon: 'pi pi-exclamation-triangle',
+    rejectProps: {
+      label: t('confirmNo'),
+      severity: 'secondary',
+      outlined: true
+    },
+    acceptProps: {
+      label: t('confirmYes'),
+      severity: 'danger'
+    },
+    accept: () => {
+      environments.value = environments.value.filter(env => env.id !== id);
+    }
+  });
 };
 
 const addEnvironment = () => {
@@ -634,6 +653,7 @@ const saveSettings = () => {
     </footer>
 
     <Toast position="bottom-right" />
+    <ConfirmDialog />
   </div>
 </template>
 
