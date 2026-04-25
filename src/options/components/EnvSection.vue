@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { EnvironmentConfig, HostnamePattern } from '../../types';
 import { t } from '../i18n';
 import HostnameList from './HostnameList.vue';
@@ -26,6 +26,8 @@ const emit = defineEmits<{
   (e: 'undo'): void;
 }>();
 
+const nameInput = ref<any>(null);
+
 // --- イベントエミッターへの連携（自身でv-modelを実現するためのロジック） ---
 const updateField = <K extends keyof EnvironmentConfig>(field: K, value: EnvironmentConfig[K]) => {
   emit('update:envConfig', { ...props.envConfig, [field]: value });
@@ -41,6 +43,17 @@ const deleteSection = () => {
 
 const undoChanges = () => {
   emit('undo');
+};
+
+const focusNameInput = () => {
+  if (nameInput.value) {
+    // PrimeVueのInputTextは内部のinput要素にアクセスするか、コンポーネントのfocusメソッドを使用する
+    if (typeof nameInput.value.focus === 'function') {
+      nameInput.value.focus();
+    } else if (nameInput.value.$el && typeof nameInput.value.$el.focus === 'function') {
+      nameInput.value.$el.focus();
+    }
+  }
 };
 
 const isDefaultEnv = ["prod", "stg", "dev"].includes(props.envConfig.id);
@@ -74,16 +87,27 @@ const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
           <span v-if="isDefaultEnv" class="env-title-text">
             {{ t(envNameKey as any) }}
           </span>
-          <InputText 
-            v-else 
-            type="text" 
-            class="env-name-input-styled"
-            :class="{ 'p-invalid': (envConfig as any)._invalidName }"
-            v-model="envConfig.name" 
-            @input="updateField('name', ($event.target as HTMLInputElement).value)"
-            maxlength="50" 
-            placeholder="Environment Name"
-          />
+          <div v-else class="flex items-center gap-1">
+            <Button 
+              icon="pi pi-pencil" 
+              text 
+              rounded 
+              severity="secondary" 
+              size="small"
+              @click="focusNameInput"
+              class="edit-icon-btn"
+            />
+            <InputText 
+              ref="nameInput"
+              type="text" 
+              class="env-name-input-styled"
+              :class="{ 'p-invalid': (envConfig as any)._invalidName }"
+              v-model="envConfig.name" 
+              @input="updateField('name', ($event.target as HTMLInputElement).value)"
+              maxlength="50" 
+              placeholder="Environment Name"
+            />
+          </div>
         </div>
         
         <div class="flex items-center gap-2">
