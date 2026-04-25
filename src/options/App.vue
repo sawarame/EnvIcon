@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, nextTick, computed } from 'vue';
+import { ref, watch, onMounted, onUnmounted, nextTick, computed } from 'vue';
 import { SyncData, EnvironmentConfig } from '../types';
 import { currentLanguage, setLanguage, t, Language } from './i18n';
 import { getHostname } from './utils';
@@ -25,6 +25,15 @@ const menu = ref();
 const fileInput = ref<HTMLInputElement | null>(null);
 
 const isDarkMode = ref(false);
+
+const handleKeydown = (event: KeyboardEvent) => {
+  if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+    event.preventDefault();
+    if (isDirty.value) {
+      saveSettings();
+    }
+  }
+};
 
 const toggleDarkMode = () => {
   isDarkMode.value = !isDarkMode.value;
@@ -299,6 +308,8 @@ onMounted(() => {
       document.documentElement.classList.add('my-app-dark');
     }
 
+    window.addEventListener('keydown', handleKeydown);
+
     chrome.storage.sync.get(null, (data: SyncData) => {
       const defaultEnvs: EnvironmentConfig[] = [
         { id: "prod", name: "Production", badgeText: "prod", badgeColor: "#ff0000", badgeOutlineColor: "#ffffff", faviconEnabled: true, pageBadgeEnabled: true, consoleLogEnabled: true, pageBadgePosition: "bottom-right", pageBadgeFontSize: 24, hostnames: [], isDeletable: false },
@@ -336,6 +347,10 @@ onMounted(() => {
       });
     });
   });
+});
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown);
 });
 
 const onLanguageChange = (val: Language) => {
