@@ -137,6 +137,15 @@ const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
                     @update:modelValue="updateField('pageBadgeEnabled', $event)"
                   />
                 </div>
+                <div class="toggle-row-item">
+                  <div class="toggle-info">
+                    <span class="text-sm font-bold">{{ t('enableConsoleLogPerEnv') }}</span>
+                  </div>
+                  <ToggleSwitch
+                    v-model="envConfig.consoleLogEnabled"
+                    @update:modelValue="updateField('consoleLogEnabled', $event)"
+                  />
+                </div>
               </div>
             </div>
 
@@ -340,6 +349,12 @@ const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
   border: 1px solid var(--border-color);
   border-radius: 12px;
   gap: 1rem;
+  width: 100%;
+}
+
+.toggle-info {
+  flex: 1;
+  min-width: 0;
 }
 
 .field-item label {

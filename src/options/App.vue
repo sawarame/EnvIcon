@@ -298,9 +298,9 @@ onMounted(() => {
 
     chrome.storage.sync.get(null, (data: SyncData) => {
       const defaultEnvs: EnvironmentConfig[] = [
-        { id: "prod", name: "Production", badgeText: "prod", badgeColor: "#ff0000", badgeOutlineColor: "#ffffff", faviconEnabled: true, pageBadgeEnabled: true, pageBadgePosition: "bottom-right", pageBadgeFontSize: 24, hostnames: [], isDeletable: false },
-        { id: "stg",  name: "Staging",    badgeText: "stg",  badgeColor: "#0000ff", badgeOutlineColor: "#ffffff", faviconEnabled: true, pageBadgeEnabled: true, pageBadgePosition: "bottom-right", pageBadgeFontSize: 24, hostnames: [], isDeletable: false },
-        { id: "dev",  name: "Development",badgeText: "dev",  badgeColor: "#008000", badgeOutlineColor: "#ffffff", faviconEnabled: true, pageBadgeEnabled: true, pageBadgePosition: "bottom-right", pageBadgeFontSize: 24, hostnames: [], isDeletable: false },
+        { id: "prod", name: "Production", badgeText: "prod", badgeColor: "#ff0000", badgeOutlineColor: "#ffffff", faviconEnabled: true, pageBadgeEnabled: true, consoleLogEnabled: true, pageBadgePosition: "bottom-right", pageBadgeFontSize: 24, hostnames: [], isDeletable: false },
+        { id: "stg",  name: "Staging",    badgeText: "stg",  badgeColor: "#0000ff", badgeOutlineColor: "#ffffff", faviconEnabled: true, pageBadgeEnabled: true, consoleLogEnabled: true, pageBadgePosition: "bottom-right", pageBadgeFontSize: 24, hostnames: [], isDeletable: false },
+        { id: "dev",  name: "Development",badgeText: "dev",  badgeColor: "#008000", badgeOutlineColor: "#ffffff", faviconEnabled: true, pageBadgeEnabled: true, consoleLogEnabled: true, pageBadgePosition: "bottom-right", pageBadgeFontSize: 24, hostnames: [], isDeletable: false },
       ];
 
       environments.value = (data.environments && data.environments.length > 0)
@@ -310,6 +310,7 @@ onMounted(() => {
       environments.value.forEach(env => {
         if (env.faviconEnabled === undefined) env.faviconEnabled = true;
         if (env.pageBadgeEnabled === undefined) env.pageBadgeEnabled = true;
+        if (env.consoleLogEnabled === undefined) env.consoleLogEnabled = true;
         if (!env.pageBadgePosition) env.pageBadgePosition = "bottom-right";
         if (!env.pageBadgeFontSize) env.pageBadgeFontSize = 24;
       });
@@ -355,6 +356,7 @@ const addEnvironment = () => {
     badgeOutlineColor: "#ffffff",
     faviconEnabled: true,
     pageBadgeEnabled: true,
+    consoleLogEnabled: true,
     pageBadgePosition: "bottom-right",
     pageBadgeFontSize: 24,
     hostnames: [{ value: '', isRegex: false }],
