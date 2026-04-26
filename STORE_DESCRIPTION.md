@@ -24,6 +24,7 @@ By automatically applying a customizable overlay to browser favicons and display
   - Turn the favicon or page badge features on/off independently per environment.
   - Position the in-page badge in any of the four corners and adjust its font size.
 - ⚡ Dynamic Detection: Seamlessly detects and updates the overlay even if the website changes its favicon dynamically via JavaScript.
+- 💻 Console Log Output: Automatically logs the current environment name (e.g., "[EnvIcon] Current Env: Production") to the browser's developer tools console for quick confirmation.
 - 🪟 Smart URL Checker: Built-in tool in the options page to quickly test if your URLs or hostnames match your configured rules.
 - 🌍 Multilingual UI: The extension settings page is available in both English and Japanese.
 
@@ -55,6 +56,7 @@ EnvIcon は、開発中のサイトやシステムの「開発環境（DEV）」
   - Faviconの変更機能とページ内バッジ表示機能は、環境ごとに個別にON/OFFを切り替えられます。
   - ページ内バッジの位置（四隅）やフォントサイズも自由に設定できます。
 - ⚡ 動的アイコン対応: SPAなどでJavaScriptによりFaviconが動的に切り替わるサイトでも、自動的に検知して常にオーバーレイを再適用します。
+- 💻 コンソールログ出力: ブラウザの開発者ツール（コンソール）に、現在の環境名を自動で出力します（例: "[EnvIcon] Current Env: Production"）。
 - 🪟 URLチェッカー機能: 設定したルールが正しく動作するか、設定画面内でURLを入力してすぐにテストできる検証機能を搭載しています。
 - 🌍 多言語対応: 設定画面のUIは日本語と英語に対応しています。
 
