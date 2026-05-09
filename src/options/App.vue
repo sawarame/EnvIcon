@@ -170,6 +170,10 @@ const startTour = () => {
         intro: t('tourSaveMsg'),
         position: 'top'
       },
+      {
+        title: t('tourFinalTitle'),
+        intro: t('tourFinalMsg'),
+      },
     ],
     nextLabel: t('tourNext'),
     prevLabel: t('tourPrev'),

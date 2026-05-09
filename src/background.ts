@@ -1,7 +1,9 @@
 // background.ts - Service Worker
 
-chrome.runtime.onInstalled.addListener(() => {
-  console.log("EnvIcon extension installed.");
+chrome.runtime.onInstalled.addListener((details) => {
+  if (details.reason === "install") {
+    chrome.tabs.create({ url: "options.html" });
+  }
 });
 
 // アイコンをクリックしたらオプション画面を開く
