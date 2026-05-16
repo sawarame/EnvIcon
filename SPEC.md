@@ -98,7 +98,17 @@
   - 視認性向上のため、`badgeOutlineColor` を使用した `text-shadow` を適用する。
 - **ON/OFFの制御:** 環境の `consoleLogEnabled` が `false` の場合、またはURLに一致する環境がない場合はログを出力しない。デフォルトは `true`（有効）。
 
-### 2.5 設定のインポート/エクスポート機能
+### 2.5 拡張機能アイコンのバッジ表示 (`src/background.ts`)
+- **概要:** ブラウザのツールバーに表示される拡張機能アイコン自体に、現在の環境を示すバッジを表示する。
+- **表示仕様:**
+  - `chrome.action.setBadgeText` を使用して、最大4文字のテキストを表示する。テキストは `badgeText` または `id` を使用する。
+  - `chrome.action.setBadgeBackgroundColor` を使用して、バッジの背景色を `badgeColor` に設定する。
+- **更新タイミング:**
+  - タブのURLが更新されたとき（`chrome.tabs.onUpdated`）。
+  - アクティブなタブが切り替わったとき（`chrome.tabs.onActivated`）。
+- **ON/OFFの制御:** 一致する環境がない場合、または無効なURL（`chrome://` など）の場合はバッジをクリア（空文字に設定）する。
+
+### 2.6 設定のインポート/エクスポート機能
 - **概要:** チーム間での設定共有を容易にするため、現在の環境設定をJSON形式で書き出し（Export）、またはJSONファイルから読み込み（Import）して一括反映する機能。
 - **仕様:**
   - オプション画面の右上のハンバーガメニューに「Export Settings」「Import Settings」のアクションを配置。
