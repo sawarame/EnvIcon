@@ -28,5 +28,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ error: error.message });
       });
     return true; // 非同期応答を許可
+  } else if (message.type === "GET_TAB_INFO") {
+    sendResponse({
+      favIconUrl: sender.tab?.favIconUrl,
+      url: sender.tab?.url
+    });
+    return false;
   }
 });

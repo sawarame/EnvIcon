@@ -39,6 +39,11 @@
   - **動的なFavicon更新への対応**: 
     - `MutationObserver` を用いて、`<head>` 内の要素追加（`childList`）だけでなく、既存のfaviconタグの `href` や `rel` 属性の変更（`attributes`）も監視し、サイト側での書き換えを検知して再適用する。
     - Observerをすり抜ける特殊な書き換えへの対策として、`setInterval` による定期チェック（3秒おき）を併用する。
+    - **堅牢性の向上**:
+      - `MutationObserver` による変更検知時、自ら無効化した既存のfaviconタグを無視せず、元のURLを維持したまま再評価を行う。
+      - DOM内にfaviconが見つからない場合、`chrome.tabs` API（バックグラウンド経由）からブラウザが検出済みの `favIconUrl` を取得して補完する。
+      - リダイレクトやSPA（Single Page Application）での遷移に対応するため、読み込み失敗時（白背景フォールバック時）はキャッシュせず、正しいfaviconが取得できるまで再試行を許可する。
+      - 非同期処理の競合を防ぐため、リクエストIDによる世代管理を行い、最新の描画結果のみを適用する。
     - 無駄な再描画を避けるため、最後に適用したData URIや元のソースURLを保持し、変化がない場合は処理をスキップする最適化を行っている。
 
 ### 2.2 オプション設定画面 (`src/options.ts`, `EnvIcon/options.html`)
