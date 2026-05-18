@@ -1,14 +1,13 @@
 # EnvIcon Project Rules
 
 ## Overview
-EnvIconは、開発・ステージング・本番環境を識別しやすくするために、ブラウザのfaviconを動的にカスタマイズするChrome拡張機能（Manifest V3）です。
-ユーザーが設定したホスト名に基づき、faviconにオーバーレイ（PROD/STG/DEV）を表示します。
+EnvIconは、開発・ステージング・本番環境を識別しやすくするために、ブラウザのfaviconを動的にカスタマイズする Chrome 拡張機能です。
+基本ルールやディレクトリ構造についてはこのファイルを参照し、具体的な技術スタックや詳細な仕様については `.context/` 配下のドキュメントを参照してください。
 
-## Tech Stack
-- **Language**: TypeScript
-- **Framework**: Chrome Extension Manifest V3, Vue 3 (Composition API)
-- **Build Tool**: Webpack, ts-loader, vue-loader
-- **Permissions**: `storage`, `<all_urls>`
+## Context & Specifications
+プロジェクトの詳細な情報は以下のファイルにまとめられています。
+- **技術スタック**: [.context/tech-stack.md](.context/tech-stack.md)
+- **詳細仕様書**: [.context/spec.md](.context/spec.md)
 
 ## Directory Structure
 - `src/`: TypeScriptソースコード
@@ -23,6 +22,9 @@ EnvIconは、開発・ステージング・本番環境を識別しやすくす�
   - `options.html`: 設定画面のHTML
   - `images/`: アイコンアセット
   - `js/`: WebpackによってビルドされたJavaScriptファイル（自動生成）
+- `.context/`: プロジェクトのメタ情報と仕様書
+  - `tech-stack.md`: 使用されている技術、ライブラリ、ツール
+  - `spec.md`: 各機能の詳細仕様
 
 ## Development Workflow
 - **Build**: `npm run build` を実行することで、`src/` のコードがビルドされ、`EnvIcon/js/` に出力されます。
@@ -34,7 +36,3 @@ EnvIconは、開発・ステージング・本番環境を識別しやすくす�
 - 非同期処理（Chrome APIなど）は `async/await` を基本とする。
 - `src/` 配下のファイルを編集し、`EnvIcon/js/` 配下のファイルは直接編集しない（ビルドで上書きされるため）。
 - 新機能を追加する場合は、`src/features/` にロジックを分離することを検討する。
-
-## Specifications
-- **各種機能の要件や詳細データ構造**については、必ずプロジェクトルートにある `SPEC.md` を参照・更新すること。
-- 機能追加や改修を行う際は、実装前に `SPEC.md` の該当機能部分の仕様を確認し、変更がある場合はドキュメントも更新する。
