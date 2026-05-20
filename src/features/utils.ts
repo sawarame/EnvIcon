@@ -10,6 +10,9 @@ export const isMatch = (
   if (!patterns) return false;
   return patterns.some((p) => {
     if (typeof p === "string") return p === currentHostname;
+    // 有効/無効のチェック (デフォルトは有効)
+    if (p.enabled === false) return false;
+
     if (p.isRegex) {
       try {
         return new RegExp(p.value).test(currentHostname);

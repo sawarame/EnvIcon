@@ -213,7 +213,7 @@ const checkerResult = computed(() => {
   for (const env of environments.value) {
     if (!env.hostnames) continue;
     const matched = env.hostnames.some(p => {
-      if (!p.value.trim()) return false;
+      if (!p.value.trim() || p.enabled === false) return false;
       if (p.isRegex) {
         try {
           return new RegExp(p.value).test(hostname);
@@ -256,7 +256,7 @@ const getUIStateString = () => {
   return JSON.stringify({
     envs: environments.value.map(env => ({
       ...env,
-      hostnames: env.hostnames.map(hn => ({ value: hn.value, isRegex: hn.isRegex }))
+      hostnames: env.hostnames.map(hn => ({ value: hn.value, isRegex: hn.isRegex, enabled: hn.enabled !== false }))
     }))
   });
 };
@@ -495,7 +495,7 @@ const saveSettings = () => {
         }
       }
 
-      return { value: processedValue, isRegex: hn.isRegex };
+      return { value: processedValue, isRegex: hn.isRegex, enabled: hn.enabled !== false };
     });
 
     return {

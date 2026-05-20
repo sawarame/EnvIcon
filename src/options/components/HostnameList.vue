@@ -7,6 +7,7 @@ import { getHostname } from '../utils';
 import Checkbox from 'primevue/checkbox';
 import InputText from 'primevue/inputtext';
 import Button from 'primevue/button';
+import ToggleSwitch from 'primevue/toggleswitch';
 
 const props = defineProps<{
   modelValue: HostnamePattern[];
@@ -22,7 +23,7 @@ const dragOverIndex = ref<number | null>(null);
 
 // --- ホスト名判定（URLチェッカープレビュー用） ---
 const isMatch = (pattern: HostnamePattern) => {
-  if (!props.checkerHostname || !pattern.value.trim()) return false;
+  if (!props.checkerHostname || !pattern.value.trim() || pattern.enabled === false) return false;
   if (pattern.isRegex) {
     try {
       return new RegExp(pattern.value).test(props.checkerHostname);
@@ -49,6 +50,13 @@ const updateRegex = (index: number, isRegex: boolean) => {
   emit('update:modelValue', newList);
 };
 
+// 有効/無効の切り替え
+const updateEnabled = (index: number, enabled: boolean) => {
+  const newList = [...props.modelValue];
+  newList[index].enabled = enabled;
+  emit('update:modelValue', newList);
+};
+
 // 最後の1行でなければ該当の入力行を削除する
 const removeInput = (index: number) => {
   if (props.modelValue.length > 1) {
@@ -60,7 +68,7 @@ const removeInput = (index: number) => {
 
 // 新たに空のホスト名パターンを追加する
 const addInput = () => {
-  const newList = [...props.modelValue, { value: '', isRegex: false }];
+  const newList = [...props.modelValue, { value: '', isRegex: false, enabled: true }];
   emit('update:modelValue', newList);
 };
 
@@ -121,7 +129,8 @@ const onDragEnd = () => {
         class="hostname-row-wrapper"
         :class="{ 
           'dragging': draggingIndex === Number(index),
-          'drag-over': dragOverIndex === Number(index)
+          'drag-over': dragOverIndex === Number(index),
+          'row-disabled': pattern.enabled === false
         }"
         draggable="true"
         @dragstart="onDragStart($event, Number(index))"
@@ -137,7 +146,16 @@ const onDragEnd = () => {
             <i class="pi pi-bars"></i>
           </div>
 
-          <!-- 2. Regex Checkbox -->
+          <!-- 2. Enabled Toggle -->
+          <div class="enabled-addon-box">
+            <ToggleSwitch
+              :modelValue="pattern.enabled !== false"
+              @update:modelValue="updateEnabled(Number(index), $event)"
+              aria-label="Toggle Hostname Pattern"
+            />
+          </div>
+
+          <!-- 3. Regex Checkbox -->
           <div class="regex-addon-box">
             <Checkbox
               :id="'regex-' + index"
@@ -150,7 +168,7 @@ const onDragEnd = () => {
             </label>
           </div>
 
-          <!-- 3. Hostname Input -->
+          <!-- 4. Hostname Input -->
           <InputText
             :value="pattern.value"
             @input="updatePath(Number(index), ($event.target as HTMLInputElement).value)"
@@ -160,9 +178,10 @@ const onDragEnd = () => {
               'match-success': isMatch(pattern)
             }"
             class="hostname-input-field"
+            :disabled="pattern.enabled === false"
           />
 
-          <!-- 4. Remove Button -->
+          <!-- 5. Remove Button -->
           <Button
             icon="pi pi-trash"
             severity="danger"
@@ -223,6 +242,11 @@ const onDragEnd = () => {
   border-top: 2px solid var(--p-primary-color);
 }
 
+.row-disabled {
+  opacity: 0.6;
+  background-color: var(--item-bg);
+}
+
 /* Custom Input Group Style */
 .hostname-custom-input-group {
   display: flex;
@@ -233,6 +257,7 @@ const onDragEnd = () => {
 
 /* Common styling for all group items to ensure they stick together */
 .drag-handle-box,
+.enabled-addon-box,
 .regex-addon-box,
 .hostname-input-field,
 .remove-item-btn {
@@ -259,7 +284,15 @@ const onDragEnd = () => {
 }
 .drag-handle-box:active { cursor: grabbing; }
 
-/* 2. Regex Addon Box */
+/* 2. Enabled Toggle Box */
+.enabled-addon-box {
+  background-color: var(--item-bg);
+  display: flex;
+  align-items: center;
+  padding: 0 0.75rem;
+}
+
+/* 3. Regex Addon Box */
 .regex-addon-box {
   background-color: var(--item-bg);
   display: flex;
@@ -268,7 +301,7 @@ const onDragEnd = () => {
   padding: 0 1rem;
 }
 
-/* 3. Input Field */
+/* 4. Input Field */
 .hostname-input-field {
   flex: 1;
   padding: 0 1rem !important;
@@ -288,7 +321,7 @@ const onDragEnd = () => {
   font-weight: 600;
 }
 
-/* 4. Remove Button */
+/* 5. Remove Button */
 .remove-item-btn {
   width: 3rem;
   display: flex;
@@ -327,5 +360,9 @@ const onDragEnd = () => {
 
 :deep(.p-checkbox-box) {
   border-radius: 4px !important;
+}
+
+:deep(.p-toggleswitch) {
+  transform: scale(0.8);
 }
 </style>

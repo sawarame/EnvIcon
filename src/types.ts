@@ -1,6 +1,7 @@
 export interface HostnamePattern {
   value: string;
   isRegex: boolean;
+  enabled?: boolean;
 }
 
 export type PageBadgePosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
