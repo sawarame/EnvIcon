@@ -72,6 +72,8 @@ export const i18nConfig = {
     importSettings: "Import Settings",
     importError: "Error: Invalid settings format.",
     importSuccess: "Settings imported successfully.",
+    importConfirmTitle: "Import Settings",
+    importConfirmMessage: "Are you sure you want to import settings? This will overwrite all your current environment configurations. This action cannot be undone until you save or reload.",
     changeLanguage: "Change Language",
     darkMode: "Dark Mode",
     lightMode: "Light Mode",
@@ -79,6 +81,7 @@ export const i18nConfig = {
     deleteConfirmMessage: "Are you sure you want to delete this environment? This action cannot be undone until you save or reload.",
     confirmYes: "Yes, Delete",
     confirmNo: "Cancel",
+    confirmImport: "Import",
   },
   ja: {
     enableFavicon: "Favicon書き換えを有効にする",
@@ -148,6 +151,8 @@ export const i18nConfig = {
     importSettings: "設定をインポート",
     importError: "エラー: 読み込んだファイルは不正なフォーマットです。",
     importSuccess: "設定をインポートしました。",
+    importConfirmTitle: "設定のインポート（データ移行）",
+    importConfirmMessage: "設定ファイルをインポートしてもよろしいですか？現在のすべての環境設定が上書きされます。（保存するまでは元に戻せます）",
     changeLanguage: "言語切り替え",
     darkMode: "ダークモード",
     lightMode: "ライトモード",
@@ -155,6 +160,7 @@ export const i18nConfig = {
     deleteConfirmMessage: "この環境を削除してもよろしいですか？（保存するまでは元に戻せます）",
     confirmYes: "削除する",
     confirmNo: "キャンセル",
+    confirmImport: "インポートする",
   },
 };
 

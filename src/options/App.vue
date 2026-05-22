@@ -120,9 +120,25 @@ const handleImportFile = (event: Event) => {
         throw new Error("Invalid format");
       }
       
-      environments.value = parsed.environments;
-      isDirty.value = true;
-      showToast(t('importSuccess'), false);
+      confirm.require({
+        message: t('importConfirmMessage'),
+        header: t('importConfirmTitle'),
+        icon: 'pi pi-exclamation-triangle',
+        rejectProps: {
+          label: t('confirmNo'),
+          severity: 'secondary',
+          outlined: true
+        },
+        acceptProps: {
+          label: t('confirmImport'),
+          severity: 'primary'
+        },
+        accept: () => {
+          environments.value = parsed.environments;
+          isDirty.value = true;
+          showToast(t('importSuccess'), false);
+        }
+      });
     } catch (err) {
       showToast(t('importError'), true);
     } finally {
@@ -672,7 +688,7 @@ const saveSettings = () => {
     </footer>
 
     <Toast position="bottom-right" />
-    <ConfirmDialog />
+    <ConfirmDialog :style="{ width: '500px' }" :breakpoints="{ '576px': '90vw' }" />
   </div>
 </template>
 
