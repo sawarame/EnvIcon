@@ -6,14 +6,12 @@
     "lib": ["es2020", "dom"],
     "types": ["chrome"],
     "noEmit": true,
-    "outDir": "./EnvIcon/js",
+    "outDir": "./package/js",
     "rootDir": "./src",
     "strict": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true
   },
-  "include": [
-    "src/**/*"
-  ]
+  "include": ["src/**/*"]
 }

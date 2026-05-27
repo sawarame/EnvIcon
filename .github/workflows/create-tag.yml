@@ -18,7 +18,7 @@ jobs:
 
       - name: Get version from manifest.json
         run: |
-          VERSION=$(jq -r '.version' EnvIcon/manifest.json)
+          VERSION=$(jq -r '.version' package/manifest.json)
           echo "VERSION=v$VERSION" >> $GITHUB_ENV
           echo "Detected version: v$VERSION"
 
@@ -26,7 +26,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          
+
           if git ls-remote --tags origin "refs/tags/${VERSION}" | grep -q "${VERSION}"; then
             echo "Tag ${VERSION} already exists in remote. Skipping tag creation."
           else
