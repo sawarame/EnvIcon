@@ -1,6 +1,6 @@
 {
   "name": "envicon",
-  "version": "1.3.12",
+  "version": "1.3.13",
   "description": "Customize favicons for development, staging, and production environments.",
   "scripts": {
     "build": "rimraf ./package/js && rimraf package.zip && webpack && (cd package && zip -r ../package.zip .)",
