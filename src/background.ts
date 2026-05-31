@@ -35,7 +35,7 @@ const updateActionIcon = async (tabId: number, env: EnvironmentConfig | null) =>
   if (!env) {
     // デフォルトアイコンに戻す
     try {
-      chrome.action.setIcon({
+      await chrome.action.setIcon({
         path: {
           "16": "/images/icon16.png",
           "32": "/images/icon32.png",
@@ -44,10 +44,10 @@ const updateActionIcon = async (tabId: number, env: EnvironmentConfig | null) =>
         },
         tabId
       });
+      await chrome.action.setBadgeText({ text: "", tabId });
     } catch (e) {
       console.error("Failed to reset action icon:", e);
     }
-    chrome.action.setBadgeText({ text: "", tabId });
     return;
   }
 
@@ -80,13 +80,13 @@ const updateActionIcon = async (tabId: number, env: EnvironmentConfig | null) =>
     ctx.fillText(text, size / 2, size - 2);
 
     const imageData = ctx.getImageData(0, 0, size, size);
-    chrome.action.setIcon({
+    await chrome.action.setIcon({
       imageData: { "32": imageData },
       tabId
     });
     
     // 以前のテキストバッジが残っている可能性があるのでクリア
-    chrome.action.setBadgeText({ text: "", tabId });
+    await chrome.action.setBadgeText({ text: "", tabId });
   } catch (e) {
     console.error("Failed to update action icon:", e);
   }
@@ -123,7 +123,10 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 // タブが切り替わったとき
 chrome.tabs.onActivated.addListener((activeInfo) => {
   chrome.tabs.get(activeInfo.tabId, (tab) => {
-    updateActionBadge(activeInfo.tabId, tab.url);
+    if (chrome.runtime.lastError) {
+      return;
+    }
+    updateActionBadge(activeInfo.tabId, tab?.url);
   });
 });
 
