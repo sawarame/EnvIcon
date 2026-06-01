@@ -552,7 +552,7 @@ const saveSettings = () => {
       <!-- Header Section -->
       <header class="header-section">
         <div class="logo-area">
-          <img src="/images/icon48.png" alt="EnvIcon Logo" class="logo-img">
+          <img src="/icons/icon48.png" alt="EnvIcon Logo" class="logo-img">
           <span class="logo-text">EnvIcon</span>
         </div>
         <div class="header-actions">

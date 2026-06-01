@@ -21,7 +21,7 @@ let _baseIconBitmap: ImageBitmap | null = null;
  */
 const getBaseIcon = async (): Promise<ImageBitmap> => {
   if (_baseIconBitmap) return _baseIconBitmap;
-  const url = chrome.runtime.getURL("/images/icon32.png");
+  const url = chrome.runtime.getURL("/icons/icon32.png");
   const response = await fetch(url);
   const blob = await response.blob();
   _baseIconBitmap = await createImageBitmap(blob);
@@ -37,10 +37,10 @@ const updateActionIcon = async (tabId: number, env: EnvironmentConfig | null) =>
     try {
       await chrome.action.setIcon({
         path: {
-          "16": "/images/icon16.png",
-          "32": "/images/icon32.png",
-          "48": "/images/icon48.png",
-          "128": "/images/icon128.png"
+          "16": "/icons/icon16.png",
+          "32": "/icons/icon32.png",
+          "48": "/icons/icon48.png",
+          "128": "/icons/icon128.png"
         },
         tabId
       });
