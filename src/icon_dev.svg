@@ -1,0 +1,22 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景（ダークな角丸正方形） -->
+  <rect width="128" height="128" rx="28" fill="#1A1C2C"/>
+
+  <!-- PROD (上部のライン: 赤/ピンク) -->
+  <path d="M35 40H93" stroke="#FF4D4D" stroke-width="12" stroke-linecap="round"/>
+  
+  <!-- STG (中央のライン: 青) -->
+  <path d="M35 64H87" stroke="#5562f8" stroke-width="12" stroke-linecap="round"/>
+
+  <!-- DEV (下部のライン: 緑) -->
+  <path d="M35 88H93" stroke="#6BCB77" stroke-width="12" stroke-linecap="round"/>
+
+  <!-- 縦棒（Eの背骨部分を薄いグラデーション的に） -->
+  <path d="M35 40V88" stroke="white" stroke-opacity="0.4" stroke-width="12" stroke-linecap="round"/>
+
+  <!-- DEVバッジ (右下) -->
+  <g transform="translate(68, 92)">
+    <rect width="52" height="28" rx="8" fill="#6BCB77"/>
+    <text x="26" y="14" fill="white" font-size="13" font-weight="bold" font-family="system-ui, -apple-system, sans-serif" text-anchor="middle" dominant-baseline="central">DEV</text>
+  </g>
+</svg>
