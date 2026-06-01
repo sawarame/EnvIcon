@@ -4,7 +4,8 @@
   "description": "Customize favicons for development, staging, and production environments.",
   "scripts": {
     "build": "rimraf ./package/js && rimraf package.zip && webpack && (cd package && zip -r ../package.zip .)",
-    "generate-icons": "node scripts/generate-icons.js"
+    "generate-icons": "node scripts/generate-icons.js",
+    "generate-icons:dev": "node scripts/generate-icons.js --dev"
   },
   "keywords": [],
   "author": "",

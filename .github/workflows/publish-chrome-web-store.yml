@@ -22,6 +22,7 @@ jobs:
       - name: Install dependencies & Build
         run: |
           npm install
+          npm run generate-icons
           npm run build
 
       # 2. Chrome Web Storeにアップロード＆審査へ提出
