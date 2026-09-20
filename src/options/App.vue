@@ -26,15 +26,20 @@ const fileInput = ref<HTMLInputElement | null>(null);
 
 const isDarkMode = ref(false);
 
+/**
+ * キーボードショートカット（Ctrl+S / Cmd+S）の押下イベントハンドラ
+ * @param event - キーボードイベントオブジェクト
+ */
 const handleKeydown = (event: KeyboardEvent) => {
   if ((event.ctrlKey || event.metaKey) && event.key === 's') {
     event.preventDefault();
-    if (isDirty.value) {
-      saveSettings();
-    }
+    executeSave(true);
   }
 };
 
+/**
+ * ダークモードとライトモードの表示テーマを切り替える関数
+ */
 const toggleDarkMode = () => {
   isDarkMode.value = !isDarkMode.value;
   if (isDarkMode.value) {
@@ -45,6 +50,10 @@ const toggleDarkMode = () => {
   chrome.storage.local.set({ darkMode: isDarkMode.value });
 };
 
+/**
+ * ヘッダーのアクションメニューの表示・非表示を切り替える関数
+ * @param event - イベントオブジェクト
+ */
 const toggleMenu = (event: Event) => {
   menu.value.toggle(event);
 };
@@ -80,6 +89,9 @@ const menuItems = computed(() => [
   }
 ]);
 
+/**
+ * 現在の環境設定をJSONファイルとしてダウンロード（エクスポート）する関数
+ */
 const handleExport = () => {
   const dataToExport = { environments: environments.value };
   const dataStr = JSON.stringify(dataToExport, null, 2);
@@ -105,6 +117,10 @@ const handleExport = () => {
   URL.revokeObjectURL(url);
 };
 
+/**
+ * 選択されたJSONファイルから設定を読み込みインポートする関数
+ * @param event - ファイル入力イベントオブジェクト
+ */
 const handleImportFile = (event: Event) => {
   const target = event.target as HTMLInputElement;
   const file = target.files?.[0];
@@ -135,7 +151,7 @@ const handleImportFile = (event: Event) => {
         },
         accept: () => {
           environments.value = parsed.environments;
-          isDirty.value = true;
+          executeSave(true);
           showToast(t('importSuccess'), false);
         }
       });
@@ -149,6 +165,9 @@ const handleImportFile = (event: Event) => {
 };
 
 // --- チュートリアルに関する関数 ---
+/**
+ * チュートリアルツアー（Intro.js）を開始する関数
+ */
 const startTour = () => {
   const intro = introJs.tour();
   intro.setOptions({
@@ -181,7 +200,7 @@ const startTour = () => {
         position: 'top'
       },
       {
-        element: '#save-button',
+        element: '#save-status',
         title: t('tourSaveTitle'),
         intro: t('tourSaveMsg'),
         position: 'top'
@@ -201,10 +220,10 @@ const startTour = () => {
     chrome.storage.local.set({ tutorialCompleted: true });
   });
 
-  // フッターのボタン（position: fixedな要素）の場合、intro.jsがスクロール位置を誤判定して
+  // フッターのボタン・ステータス（position: fixedな要素）の場合、intro.jsがスクロール位置を誤判定して
   // 下に少しずつスクロールし続ける不具合を防ぐため、スクロールを無効化する
   intro.onbeforechange((targetElement) => {
-    if (targetElement.id === 'add-env-button' || targetElement.id === 'save-button') {
+    if (targetElement.id === 'add-env-button' || targetElement.id === 'save-status') {
       intro.setOptions({ scrollToElement: false });
     } else {
       intro.setOptions({ scrollToElement: true });
@@ -247,13 +266,23 @@ const checkerResult = computed(() => {
   return { match: false, hostname: hostname, env: null };
 });
 
-const getEnvName = (env: EnvironmentConfig) => {
+/**
+ * 環境設定オブジェクトからローカライズされた環境名を取得する関数
+ * @param env - 環境設定オブジェクト
+ * @returns ローカライズされた環境名
+ */
+const getEnvName = (env: EnvironmentConfig): string => {
   if (env.id === 'prod') return t('ProductionName');
   if (env.id === 'stg') return t('StagingName');
   if (env.id === 'dev') return t('DevelopmentName');
   return env.name;
 };
 
+/**
+ * トースト通知を表示する関数
+ * @param message - 表示するメッセージ文字列
+ * @param isError - エラー表示かどうかを示すフラグ（デフォルト: false）
+ */
 const showToast = (message: string, isError: boolean = false) => {
   toast.add({
     severity: isError ? 'error' : 'success',
@@ -263,12 +292,30 @@ const showToast = (message: string, isError: boolean = false) => {
   });
 };
 
-// --- 状態管理・ダーティチェック ---
-const isDirty = ref(false); // 変更が未保存かどうかのフラグ
-let initialSettingsStr = ''; // 初期化時や保存時の状態文字列を保持
+// --- 状態管理・自動保存 ---
+/** 自動保存のステータス型 */
+type SaveStatus = 'saved' | 'saving' | 'error';
 
-// 画面表示用の内部状態（バリデーション用プロパティなど）を省いた設定オブジェクトのJSON文字列を返す
-const getUIStateString = () => {
+/** 現在の保存ステータス */
+const saveStatus = ref<SaveStatus>('saved');
+
+/** 変更が未保存かどうかのフラグ */
+const isDirty = ref(false);
+
+/** 初期データ読み込みが完了したかどうかを示すフラグ */
+const isInitialized = ref(false);
+
+/** 初期化時や保存時の状態文字列を保持 */
+let initialSettingsStr = '';
+
+/** 自動保存デバウンス用のタイマー識別子 */
+let autoSaveTimer: ReturnType<typeof setTimeout> | null = null;
+
+/**
+ * 画面表示用の内部状態（バリデーション用プロパティなど）を省いた設定オブジェクトのJSON文字列を返す関数
+ * @returns 設定データのJSON文字列
+ */
+const getUIStateString = (): string => {
   return JSON.stringify({
     envs: environments.value.map(env => ({
       ...env,
@@ -277,10 +324,35 @@ const getUIStateString = () => {
   });
 };
 
-const checkDirtyState = () => {
-  isDirty.value = getUIStateString() !== initialSettingsStr;
+/**
+ * 設定の変更を監視し、自動保存タイマー（デバウンス500ms）を開始する関数
+ */
+const onSettingsChange = () => {
+  if (!isInitialized.value) return;
+
+  const currentUIState = getUIStateString();
+  if (currentUIState === initialSettingsStr) {
+    isDirty.value = false;
+    return;
+  }
+
+  isDirty.value = true;
+  saveStatus.value = 'saving';
+
+  if (autoSaveTimer) {
+    clearTimeout(autoSaveTimer);
+  }
+
+  // 入力途中の連続変更に対応するため、500ms待ってから保存を実行
+  autoSaveTimer = setTimeout(() => {
+    executeSave(false);
+  }, 500);
 };
 
+/**
+ * 指定された環境の編集内容を直前の保存状態に戻す関数
+ * @param envId - 対象の環境ID
+ */
 const undoChanges = (envId: string) => {
   if (!initialSettingsStr) return;
   try {
@@ -290,24 +362,29 @@ const undoChanges = (envId: string) => {
     if (originalEnv) {
       const index = environments.value.findIndex(e => e.id === envId);
       if (index !== -1) {
-        // Deep copy to avoid reference issues
+        // 参照を切るためにディープコピー
         environments.value[index] = JSON.parse(JSON.stringify(originalEnv));
-        // Ensure at least one hostname field exists
+        // 最低1つのホスト名行を確保
         if (!environments.value[index].hostnames || environments.value[index].hostnames.length === 0) {
           environments.value[index].hostnames = [{ value: '', isRegex: false }];
         }
-        checkDirtyState();
       }
-    } else {
-      // If it's a new environment that wasn't in initialSettings, we might want to remove it or just ignore
-      // For now, let's just ignore or we could delete it if the user expects "undo" to revert "add"
     }
   } catch (err) {
     console.error("Failed to undo changes:", err);
   }
 };
 
-watch(environments, checkDirtyState, { deep: true });
+watch(environments, onSettingsChange, { deep: true });
+
+/**
+ * 画面終了・リロード時に未保存のタイマーがあれば即座に保存を実行するイベントハンドラ
+ */
+const handleBeforeUnload = () => {
+  if (autoSaveTimer) {
+    executeSave(false);
+  }
+};
 
 onMounted(() => {
   chrome.storage.local.get(["language", "tutorialCompleted", "darkMode"], (localData) => {
@@ -329,6 +406,7 @@ onMounted(() => {
     }
 
     window.addEventListener('keydown', handleKeydown);
+    window.addEventListener('beforeunload', handleBeforeUnload);
 
     chrome.storage.sync.get(null, (data: SyncData) => {
       const defaultEnvs: EnvironmentConfig[] = [
@@ -358,6 +436,8 @@ onMounted(() => {
       nextTick(() => {
         initialSettingsStr = getUIStateString();
         isDirty.value = false;
+        saveStatus.value = 'saved';
+        isInitialized.value = true;
 
         if (!localData.tutorialCompleted) {
           setTimeout(() => {
@@ -371,14 +451,25 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown);
+  window.removeEventListener('beforeunload', handleBeforeUnload);
+  if (autoSaveTimer) {
+    clearTimeout(autoSaveTimer);
+  }
 });
 
+/**
+ * 言語が変更された際のハンドラ関数
+ * @param val - 変更後の言語種別
+ */
 const onLanguageChange = (val: Language) => {
   setLanguage(val);
   chrome.storage.local.set({ language: val });
-  checkDirtyState();
 };
 
+/**
+ * 指定した環境を削除する関数
+ * @param id - 削除対象の環境ID
+ */
 const deleteEnvironment = (id: string) => {
   confirm.require({
     message: t('deleteConfirmMessage'),
@@ -399,6 +490,9 @@ const deleteEnvironment = (id: string) => {
   });
 };
 
+/**
+ * 新しいカスタム環境を追加する関数
+ */
 const addEnvironment = () => {
   const defaultName = t("newEnvDefaultName");
   const id = `custom_${Date.now()}`;
@@ -427,7 +521,17 @@ const addEnvironment = () => {
 };
 
 // --- 設定の保存処理・バリデーション ---
-const saveSettings = () => {
+/**
+ * 設定値のバリデーションを実行し、Chromeストレージへ保存する関数
+ * @param isManual - 手動トリガー（ショートカットキー、インポートなど）かどうか（デフォルト: false）
+ * @returns バリデーションに通過して保存処理が行われたかどうかの真偽値
+ */
+const executeSave = (isManual: boolean = false): boolean => {
+  if (autoSaveTimer) {
+    clearTimeout(autoSaveTimer);
+    autoSaveTimer = null;
+  }
+
   let hasInvalid = false;
   let hasDuplicate = false;
   let hasEmptyName = false;
@@ -522,8 +626,11 @@ const saveSettings = () => {
   });
 
   if (hasInvalid || hasDuplicate || hasEmptyName) {
-    showToast(hasDuplicate ? t("errorDuplicate") : t("errorInvalid"), true);
-    return;
+    saveStatus.value = 'error';
+    if (isManual) {
+      showToast(hasDuplicate ? t("errorDuplicate") : t("errorInvalid"), true);
+    }
+    return false;
   }
 
   const settings: SyncData = {
@@ -531,17 +638,16 @@ const saveSettings = () => {
   };
 
   chrome.storage.sync.set(settings, () => {
-    showToast(t("saved"), false);
+    saveStatus.value = 'saved';
     initialSettingsStr = getUIStateString();
     isDirty.value = false;
     
-    environments.value = envsToSave;
-    environments.value.forEach(env => {
-      if (!env.hostnames || env.hostnames.length === 0) {
-        env.hostnames = [{ value: '', isRegex: false }];
-      }
-    });
+    if (isManual) {
+      showToast(t("saved"), false);
+    }
   });
+
+  return true;
 };
 
 </script>
@@ -662,27 +768,27 @@ const saveSettings = () => {
     <footer class="sticky-footer">
       <div class="container footer-content">
         <Button 
-          id="save-button"
-          :label="t('save')"
-          icon="pi pi-save"
-          @click="saveSettings"
-          :disabled="!isDirty"
-          size="large"
-          class="save-btn px-8"
-        />
-        <Button 
           id="add-env-button"
           :label="t('addEnvironment')"
           icon="pi pi-plus"
           @click="addEnvironment"
-          severity="secondary"
-          variant="text"
+          severity="primary"
           size="large"
           class="add-btn"
         />
-        <div v-if="isDirty" class="ms-auto flex items-center gap-2">
-          <i class="pi pi-exclamation-circle"></i>
-          <span>Unsaved changes</span>
+        <div id="save-status" class="save-status-container ms-auto flex items-center gap-2">
+          <template v-if="saveStatus === 'saving'">
+            <i class="pi pi-spin pi-spinner text-secondary"></i>
+            <span class="status-text text-secondary">{{ t('saving') }}</span>
+          </template>
+          <template v-else-if="saveStatus === 'error'">
+            <i class="pi pi-exclamation-triangle text-amber-500"></i>
+            <span class="status-text text-amber-500 font-medium">{{ t('saveError') }}</span>
+          </template>
+          <template v-else>
+            <i class="pi pi-check text-green-500"></i>
+            <span class="status-text text-green-500">{{ t('allSaved') }}</span>
+          </template>
         </div>
       </div>
     </footer>

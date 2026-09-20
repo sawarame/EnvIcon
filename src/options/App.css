@@ -119,6 +119,11 @@ body {
 .gap-3 { gap: 0.75rem; }
 .w-full { width: 100%; }
 .rounded-xl { border-radius: 0.75rem; }
+.text-secondary { color: var(--text-secondary); }
+.text-green-500 { color: #22c55e; }
+.text-amber-500 { color: #f59e0b; }
+.font-medium { font-weight: 500; }
+.text-sm { font-size: 0.875rem; }
 
 /* チェッカー等でバッジをプレビュー表示させるためのダミー要素用クラス */
 .env-badge-tag {
@@ -133,7 +138,7 @@ body {
 
 /* 
   Footer
-  画面下部に常に固定表示されるボタン群（保存・追加）
+  画面下部に常に固定表示されるバー（環境追加・自動保存ステータス）
   backdrop-filterを用いて背後を透過的にぼかす
 */
 .sticky-footer {
@@ -155,14 +160,27 @@ body {
   gap: 1.5rem;
 }
 
-.save-btn {
+.add-btn {
   border-radius: 12px;
   font-weight: 600;
-  box-shadow: 0 4px 12px rgba(var(--p-primary-rgb), 0.3);
+  box-shadow: 0 4px 12px rgba(var(--p-primary-rgb), 0.25);
 }
 
-.add-btn {
-  font-weight: 600;
+.save-status-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  background-color: var(--item-bg);
+  border: 1px solid var(--border-color);
+  font-size: 0.875rem;
+  transition: all 0.2s ease-in-out;
+}
+
+.status-text {
+  font-size: 0.875rem;
+  line-height: 1.2;
 }
 
 /* Animations */
