@@ -3,6 +3,7 @@ import { ref, watch, onMounted, onUnmounted, nextTick, computed } from 'vue';
 import { SyncData, EnvironmentConfig } from '../types';
 import { currentLanguage, setLanguage, t, Language } from './i18n';
 import { getHostname } from './utils';
+import { createDefaultEnvironments, getSessionData } from '../features/utils';
 import EnvSection from './components/EnvSection.vue';
 import introJs from 'intro.js';
 import { useToast } from 'primevue/usetoast';
@@ -25,6 +26,17 @@ const menu = ref();
 const fileInput = ref<HTMLInputElement | null>(null);
 
 const isDarkMode = ref(false);
+/** ポップアップ側で全体一時OFFが有効になっているかどうか */
+const isGlobalPaused = ref(false);
+
+/**
+ * 全体一時OFFを解除して通常動作（ON）へ復帰させる非同期関数
+ * @returns 処理完了を表す Promise
+ */
+const resumeGlobalNow = async (): Promise<void> => {
+  isGlobalPaused.value = false;
+  await chrome.storage.session.set({ globalDisabled: false });
+};
 
 /**
  * キーボードショートカット（Ctrl+S / Cmd+S）の押下イベントハンドラ
@@ -386,7 +398,85 @@ const handleBeforeUnload = () => {
   }
 };
 
+/** 自身の保存処理実行中フラグ（ストレージ変更イベントのループ防止用） */
+let isSelfSaving = false;
+
+/**
+ * 読み込んだ環境配列にデフォルト値の補完と最低1行の入力欄を付与して整形する関数
+ * @param rawEnvs - ストレージから取得した環境設定配列
+ * @returns UI表示用に正規化された環境設定配列
+ */
+const normalizeEnvironmentsForUI = (
+  rawEnvs: EnvironmentConfig[] | undefined
+): EnvironmentConfig[] => {
+  const source =
+    rawEnvs && rawEnvs.length > 0
+      ? (JSON.parse(JSON.stringify(rawEnvs)) as EnvironmentConfig[])
+      : createDefaultEnvironments();
+
+  source.forEach((env) => {
+    if (env.faviconEnabled === undefined) env.faviconEnabled = true;
+    if (env.pageBadgeEnabled === undefined) env.pageBadgeEnabled = true;
+    if (env.consoleLogEnabled === undefined) env.consoleLogEnabled = true;
+    if (!env.pageBadgePosition) env.pageBadgePosition = "bottom-right";
+    if (!env.pageBadgeFontSize) env.pageBadgeFontSize = 24;
+    if (!env.hostnames || env.hostnames.length === 0) {
+      env.hostnames = [{ value: "", isRegex: false, enabled: true }];
+    }
+  });
+
+  return source;
+};
+
+/**
+ * ポップアップ等の外部コンテキストでストレージが更新された際にUI状態を同期する非同期関数
+ * @param changes - 変更されたストレージキーのマップ
+ * @param areaName - 変更が発生したストレージ領域名
+ * @returns 同期処理の完了を表す Promise
+ */
+const handleExternalStorageChange = async (
+  changes: { [key: string]: chrome.storage.StorageChange },
+  areaName: string
+): Promise<void> => {
+  if (areaName === "session" && changes.globalDisabled) {
+    const sessionData = await getSessionData();
+    isGlobalPaused.value = Boolean(sessionData.globalDisabled);
+    return;
+  }
+
+  if (areaName === "sync" && changes.environments) {
+    if (isSelfSaving || isDirty.value) {
+      return;
+    }
+    const syncData = (await chrome.storage.sync.get("environments")) as SyncData;
+    isInitialized.value = false;
+    environments.value = normalizeEnvironmentsForUI(syncData.environments);
+    await nextTick();
+    initialSettingsStr = getUIStateString();
+    isDirty.value = false;
+    saveStatus.value = "saved";
+    isInitialized.value = true;
+  }
+};
+
+/**
+ * chrome.storage.onChanged に登録するためのイベントリスナーラッパー関数
+ * @param changes - 変更されたストレージキーのマップ
+ * @param areaName - 変更が発生したストレージ領域名
+ */
+const storageChangeListener = (
+  changes: { [key: string]: chrome.storage.StorageChange },
+  areaName: string
+): void => {
+  void handleExternalStorageChange(changes, areaName);
+};
+
 onMounted(() => {
+  void getSessionData().then((sessionData) => {
+    isGlobalPaused.value = Boolean(sessionData.globalDisabled);
+  });
+  chrome.storage.onChanged.addListener(storageChangeListener);
+
   chrome.storage.local.get(["language", "tutorialCompleted", "darkMode"], (localData) => {
     let lang: Language = "en";
     if (localData.language === "ja" || localData.language === "en") {
@@ -409,29 +499,7 @@ onMounted(() => {
     window.addEventListener('beforeunload', handleBeforeUnload);
 
     chrome.storage.sync.get(null, (data: SyncData) => {
-      const defaultEnvs: EnvironmentConfig[] = [
-        { id: "prod", name: "Production", badgeText: "prod", badgeColor: "#ff0000", badgeOutlineColor: "#ffffff", faviconEnabled: true, pageBadgeEnabled: true, consoleLogEnabled: true, pageBadgePosition: "bottom-right", pageBadgeFontSize: 24, hostnames: [], isDeletable: false },
-        { id: "stg",  name: "Staging",    badgeText: "stg",  badgeColor: "#0000ff", badgeOutlineColor: "#ffffff", faviconEnabled: true, pageBadgeEnabled: true, consoleLogEnabled: true, pageBadgePosition: "bottom-right", pageBadgeFontSize: 24, hostnames: [], isDeletable: false },
-        { id: "dev",  name: "Development",badgeText: "dev",  badgeColor: "#008000", badgeOutlineColor: "#ffffff", faviconEnabled: true, pageBadgeEnabled: true, consoleLogEnabled: true, pageBadgePosition: "bottom-right", pageBadgeFontSize: 24, hostnames: [], isDeletable: false },
-      ];
-
-      environments.value = (data.environments && data.environments.length > 0)
-        ? data.environments
-        : defaultEnvs;
-
-      environments.value.forEach(env => {
-        if (env.faviconEnabled === undefined) env.faviconEnabled = true;
-        if (env.pageBadgeEnabled === undefined) env.pageBadgeEnabled = true;
-        if (env.consoleLogEnabled === undefined) env.consoleLogEnabled = true;
-        if (!env.pageBadgePosition) env.pageBadgePosition = "bottom-right";
-        if (!env.pageBadgeFontSize) env.pageBadgeFontSize = 24;
-      });
-
-      environments.value.forEach(env => {
-        if (!env.hostnames || env.hostnames.length === 0) {
-          env.hostnames = [{ value: '', isRegex: false }];
-        }
-      });
+      environments.value = normalizeEnvironmentsForUI(data.environments);
 
       nextTick(() => {
         initialSettingsStr = getUIStateString();
@@ -450,6 +518,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  chrome.storage.onChanged.removeListener(storageChangeListener);
   window.removeEventListener('keydown', handleKeydown);
   window.removeEventListener('beforeunload', handleBeforeUnload);
   if (autoSaveTimer) {
@@ -637,10 +706,14 @@ const executeSave = (isManual: boolean = false): boolean => {
     environments: envsToSave,
   };
 
+  isSelfSaving = true;
   chrome.storage.sync.set(settings, () => {
     saveStatus.value = 'saved';
     initialSettingsStr = getUIStateString();
     isDirty.value = false;
+    setTimeout(() => {
+      isSelfSaving = false;
+    }, 100);
     
     if (isManual) {
       showToast(t("saved"), false);
@@ -702,6 +775,21 @@ const executeSave = (isManual: boolean = false): boolean => {
           <input type="file" ref="fileInput" accept=".json" style="display: none" @change="handleImportFile" />
         </div>
       </header>
+
+      <!-- 全体一時OFF中の通知バナー -->
+      <div v-if="isGlobalPaused" class="global-pause-alert mb-8 animate-fade-in">
+        <div class="flex items-center gap-3">
+          <i class="pi pi-pause-circle"></i>
+          <span class="font-medium">{{ t("optionsGlobalPausedNotice") }}</span>
+        </div>
+        <Button
+          :label="t('optionsResumeNow')"
+          icon="pi pi-play"
+          size="small"
+          severity="warn"
+          @click="resumeGlobalNow"
+        />
+      </div>
 
       <!-- URL Checker -->
       <Accordion id="url-checker-card" class="mb-8">

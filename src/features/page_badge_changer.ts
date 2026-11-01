@@ -1,14 +1,19 @@
-import { SyncData, PageBadgePosition } from "../types";
-import { findMatchingEnv } from "./utils";
+import { PageBadgePosition, SessionData, SyncData } from "../types";
+import { findMatchingEnv, isTemporarilyDisabled } from "./utils";
 
 let _syncData: SyncData = {};
+let _sessionData: SessionData = {};
 
 const BADGE_ID = "env-icon-page-badge";
 
 /**
- * バッジの表示位置に対応するCSSスタイルを返す。
+ * バッジの表示位置に対応するCSSスタイルを返す関数
+ * @param position - ページ内バッジの表示位置
+ * @returns 配置用のCSSスタイルオブジェクト
  */
-const getPositionStyle = (position: PageBadgePosition): Partial<CSSStyleDeclaration> => {
+const getPositionStyle = (
+  position: PageBadgePosition
+): Partial<CSSStyleDeclaration> => {
   const base: Partial<CSSStyleDeclaration> = {
     position: "fixed",
     top: "auto",
@@ -31,13 +36,29 @@ const getPositionStyle = (position: PageBadgePosition): Partial<CSSStyleDeclarat
 };
 
 /**
- * ページ内バッジをDOMに挿入・更新する。
+ * ページ内バッジをDOMから取り除く関数
  */
-const updatePageBadge = () => {
-  const env = findMatchingEnv(_syncData.environments, window.location.hostname);
+const removeBadge = (): void => {
+  const badge = document.getElementById(BADGE_ID);
+  if (badge) badge.remove();
+};
 
-  // 環境が見つからない、またはこの環境でページ内バッジが無効な場合はバッジを除去
-  if (!env || env.pageBadgeEnabled === false) {
+/**
+ * 現在の設定と一時OFF状態に基づいてページ内バッジをDOMに挿入・更新または除去する関数
+ */
+const updatePageBadge = (): void => {
+  const hostname = window.location.hostname;
+
+  // 一時OFF（全体OFFまたはサイト単位OFF）の場合はバッジを除去する
+  if (isTemporarilyDisabled(_sessionData, hostname)) {
+    removeBadge();
+    return;
+  }
+
+  const env = findMatchingEnv(_syncData.environments, hostname);
+
+  // 環境が見つからない、またはこの環境でページ内バッジが無効な場合はバッジを除去する
+  if (!env || env.pageBadgeEnabled === false || !document.body) {
     removeBadge();
     return;
   }
@@ -77,14 +98,29 @@ const updatePageBadge = () => {
 };
 
 /**
- * ページ内バッジをDOMから取り除く。
+ * ページ内バッジ表示機能を初期化する関数
+ * @param syncData - 同期ストレージの設定データ
+ * @param sessionData - セッションストレージの一時OFF設定データ
  */
-const removeBadge = () => {
-  const badge = document.getElementById(BADGE_ID);
-  if (badge) badge.remove();
+export const initializePageBadgeFeature = (
+  syncData: SyncData,
+  sessionData: SessionData = {}
+): void => {
+  _syncData = syncData;
+  _sessionData = sessionData;
+  updatePageBadge();
 };
 
-export const initializePageBadgeFeature = (syncData: SyncData) => {
+/**
+ * 設定変更や一時OFF切り替え時にページ内バッジを即座に再評価する関数
+ * @param syncData - 最新の同期ストレージ設定データ
+ * @param sessionData - 最新のセッションストレージ一時OFF設定データ
+ */
+export const refreshPageBadgeFeature = (
+  syncData: SyncData,
+  sessionData: SessionData
+): void => {
   _syncData = syncData;
+  _sessionData = sessionData;
   updatePageBadge();
 };
