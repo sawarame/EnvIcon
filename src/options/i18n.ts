@@ -67,7 +67,7 @@ export const i18nConfig = {
     tourSaveTitle: "Auto-Save",
     tourSaveMsg: "Changes are automatically saved as you make them. No need to click a save button!",
     tourFinalTitle: "One More Thing...",
-    tourFinalMsg: "You can always open this options page by clicking the extension icon in your browser toolbar. Enjoy!",
+    tourFinalMsg: "Click the extension icon in your toolbar anytime for quick site assignment, temporary pause, or to open this settings page. Enjoy!",
     tourNext: "Next",
     tourPrev: "Back",
     tourFinish: "Done",
@@ -85,6 +85,22 @@ export const i18nConfig = {
     confirmYes: "Yes, Delete",
     confirmNo: "Cancel",
     confirmImport: "Import",
+    popupOpenSettings: "Open Settings",
+    popupGlobalToggleTitle: "Enable or pause EnvIcon on all sites",
+    popupGlobalDisabledBanner: "Paused on all sites (auto-resumes on browser restart)",
+    popupCurrentSite: "Current Site",
+    popupUnsupportedPage: "EnvIcon is not available on this page.",
+    popupSiteMuteLabel: "Temporarily pause on this site",
+    popupSiteMuteHint: "Auto-resumes when browser closes",
+    popupStatusUnassigned: "Unassigned",
+    popupStatusPaused: "Paused",
+    popupAssignEnvTitle: "Environment Assignment",
+    popupUnassign: "Remove",
+    popupAssignHint: "Click to assign, click active item to remove",
+    popupRegexLockedMsg: "Matched via regex pattern. Edit or remove it in Settings.",
+    popupRegexPatternLabel: "Pattern:",
+    optionsGlobalPausedNotice: "EnvIcon is currently paused on all sites (resets when browser closes).",
+    optionsResumeNow: "Resume Now",
   },
   ja: {
     enableFavicon: "Favicon書き換えを有効にする",
@@ -149,7 +165,7 @@ export const i18nConfig = {
     tourSaveTitle: "自動保存",
     tourSaveMsg: "設定を変更すると自動的に保存されます。保存ボタンを押す必要はありません！",
     tourFinalTitle: "最後に",
-    tourFinalMsg: "この設定画面は、ブラウザのツールバーにあるアイコンをクリックすることで、いつでも呼び出すことができます。ぜひ活用してください！",
+    tourFinalMsg: "ツールバーのアイコンをクリックすると、サイトのワンクリック登録や一時OFF、この設定画面の呼び出しがいつでも行えます。ぜひ活用してください！",
     tourNext: "次へ",
     tourPrev: "戻る",
     tourFinish: "完了",
@@ -167,27 +183,46 @@ export const i18nConfig = {
     confirmYes: "削除する",
     confirmNo: "キャンセル",
     confirmImport: "インポートする",
+    popupOpenSettings: "設定画面を開く",
+    popupGlobalToggleTitle: "すべてのサイトで EnvIcon を有効化 / 一時OFF",
+    popupGlobalDisabledBanner: "すべてのサイトで一時OFF中です（ブラウザ再起動で自動復帰）",
+    popupCurrentSite: "現在のサイト",
+    popupUnsupportedPage: "このページでは拡張機能を利用できません。",
+    popupSiteMuteLabel: "このサイトを一時OFF",
+    popupSiteMuteHint: "ブラウザを閉じると自動でONに戻ります",
+    popupStatusUnassigned: "未登録",
+    popupStatusPaused: "一時OFF中",
+    popupAssignEnvTitle: "環境の割り当て",
+    popupUnassign: "登録解除",
+    popupAssignHint: "クリックで即割り当て・選択中の環境を再クリックで解除",
+    popupRegexLockedMsg: "正規表現パターンで一致中のため、変更・解除は設定画面から行ってください。",
+    popupRegexPatternLabel: "一致パターン:",
+    optionsGlobalPausedNotice: "現在、すべてのサイトで一時OFFが有効になっています（ブラウザ再起動で自動復帰）。",
+    optionsResumeNow: "今すぐONに戻す",
   },
 };
 
 /** 対応言語の型定義 */
 export type Language = "en" | "ja";
 
+/** 翻訳キーの型定義 */
+export type TranslationKey = keyof typeof i18nConfig["en"];
+
 /** 現在選択されている言語 */
 export const currentLanguage = ref<Language>("en");
 
 /**
- * 現在の言語を設定する
- * @param lang 設定する言語 ("en" | "ja")
+ * 現在の表示言語を設定する関数
+ * @param lang - 設定する言語 ("en" | "ja")
  */
-export const setLanguage = (lang: Language) => {
+export const setLanguage = (lang: Language): void => {
   currentLanguage.value = lang;
 };
 
 /**
- * 指定されたキーに対応する翻訳テキストを取得する
- * @param key 翻訳キー
- * @returns 翻訳された文字列
+ * 指定されたキーに対応する翻訳テキストを取得する関数
+ * @param key - 翻訳キー
+ * @returns 現在の言語に対応する翻訳済み文字列
  */
-export const t = (key: keyof typeof i18nConfig["en"]): string =>
+export const t = (key: TranslationKey): string =>
   i18nConfig[currentLanguage.value][key] || key;

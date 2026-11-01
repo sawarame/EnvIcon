@@ -282,3 +282,22 @@ body:has(.introjs-overlay) .hostname-input-field:focus {
   border: none !important;
   box-shadow: none !important;
 }
+
+/* 全体一時OFF中の案内バー */
+.global-pause-alert {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-radius: 1rem;
+  background-color: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+:root.my-app-dark .global-pause-alert {
+  background-color: #451a03;
+  color: #fcd34d;
+  border-color: #78350f;
+}
