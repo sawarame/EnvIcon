@@ -177,11 +177,27 @@ const handleImportFile = (event: Event) => {
 };
 
 // --- チュートリアルに関する関数 ---
+/** 現在実行中のチュートリアルツアーインスタンス（二重起動防止・クリーンアップ用） */
+let activeTour: ReturnType<typeof introJs.tour> | null = null;
+
 /**
- * チュートリアルツアー（Intro.js）を開始する関数
+ * チュートリアルツアー（Intro.js）を開始する非同期関数
+ * @returns ツアー開始処理の完了を表す Promise
  */
-const startTour = () => {
+const startTour = async (): Promise<void> => {
+  // すでにツアーが実行中または起動処理中の場合は二重起動を防止する
+  if (activeTour !== null) {
+    return;
+  }
+
+  // トリガーとなったボタン等にフォーカスが残っているとEnterキー押下時に再発火するおそれがあるためフォーカスを外す
+  if (document.activeElement instanceof HTMLElement) {
+    document.activeElement.blur();
+  }
+
   const intro = introJs.tour();
+  activeTour = intro;
+
   intro.setOptions({
     steps: [
       {
@@ -228,14 +244,22 @@ const startTour = () => {
     hidePrev: true,
   });
 
-  intro.oncomplete(() => {
+  intro.onComplete(() => {
     chrome.storage.local.set({ tutorialCompleted: true });
   });
 
+  intro.onExit(() => {
+    if (activeTour === intro) {
+      activeTour = null;
+    }
+  });
+
   // フッターのボタン・ステータス（position: fixedな要素）の場合、intro.jsがスクロール位置を誤判定して
-  // 下に少しずつスクロールし続ける不具合を防ぐため、スクロールを無効化する
-  intro.onbeforechange((targetElement) => {
-    if (targetElement.id === 'add-env-button' || targetElement.id === 'save-status') {
+  // 下に少しずつスクロールし続ける不具合を防ぐため、スクロールを無効化する。
+  // なお、最終ステップでEnterキー等を押して完了する際、Intro.js内部で範囲外のステップに対して
+  // targetElement が undefined で呼び出されるため、オプショナルチェイニングで安全に判定する。
+  intro.onBeforeChange((targetElement: HTMLElement | undefined) => {
+    if (targetElement?.id === 'add-env-button' || targetElement?.id === 'save-status') {
       intro.setOptions({ scrollToElement: false });
     } else {
       intro.setOptions({ scrollToElement: true });
@@ -243,7 +267,13 @@ const startTour = () => {
     return true;
   });
 
-  intro.start();
+  try {
+    await intro.start();
+  } finally {
+    if (!intro.hasStarted() && activeTour === intro) {
+      activeTour = null;
+    }
+  }
 };
 
 const environments = ref<EnvironmentConfig[]>([]);
@@ -509,7 +539,7 @@ onMounted(() => {
 
         if (!localData.tutorialCompleted) {
           setTimeout(() => {
-            startTour();
+            void startTour();
           }, 500);
         }
       });
@@ -518,6 +548,10 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  if (activeTour?.hasStarted()) {
+    void activeTour.exit(true);
+    activeTour = null;
+  }
   chrome.storage.onChanged.removeListener(storageChangeListener);
   window.removeEventListener('keydown', handleKeydown);
   window.removeEventListener('beforeunload', handleBeforeUnload);
