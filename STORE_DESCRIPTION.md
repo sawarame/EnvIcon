@@ -1,85 +1,129 @@
 # Store Description (Chrome Web Store)
 
-This file contains the descriptions for the Chrome Web Store in plain text format (non-Markdown) for easy copy-pasting.
+This file contains the Chrome Web Store listing descriptions for EnvIcon. Copy and paste the plain-text body under each field heading directly into the Chrome Web Store Developer Dashboard.
 
 ## Japanese (日本語)
 
-【要約】（最大132文字）
-本番・検証・開発環境を Favicon やページ内バッジで瞬時に識別！誤操作を防ぐエンジニア必携のブラウザ拡張機能。
+### **名前**
+EnvIcon - 環境識別 & ファビコンバッジ表示ツール
 
-【概要】
-EnvIcon は、複数の環境（PROD/STG/DEVなど）を同時に開いて作業する開発者のためのツールです。
-「本番環境だと思ったら検証環境だった」「間違えて本番データを操作してしまった」といったミスを、視覚的なインジケーターで未然に防ぎます。
-設定したホスト名や正規表現パターンに基づき、Favicon へのバッジ重畳、ページ内へのフローティングバッジ表示、コンソールログ出力などを動的に行います。
+### **短い説明**
+本番・ステージング・開発などの環境を、Favicon・ページ内バッジ・ツールバーアイコンで視覚的に識別し、環境の取り違えによる誤操作を防ぐ開発者向け拡張機能です。
 
-【主な機能】
-🚀 Favicon バッジの動的書き換え
-現在開いているページの Favicon に、環境名を示すバッジ（PROD, STG など）を重ねて表示します。タブが多数並んでいても、どの環境のページか一目で判別可能です。
+### **詳細説明**
+💡 【 概要 】
+EnvIcon は、本番（PROD）・ステージング（STG）・開発（DEV）など複数の環境を同時に開いて作業する開発者やQAエンジニア、運用担当者のための環境識別ツールです。
+設定したURLパターン（ホスト名・ポート番号・パス・正規表現）に基づき、Favicon へのバッジ重ね合わせ、ページ内へのフローティングバッジ表示、ツールバーアイコンの書き換え、コンソールログ出力を動的に行い、環境の取り違えによる誤操作を未然に防ぎます。
 
-🌟 ページ内フローティングバッジ
-ページの四隅（カスタマイズ可能）に、半透明の環境バッジを固定表示します。Favicon だけでなく、作業中の画面上でも常に環境を意識できます。
+🛠️ 【 主な機能 】
+■ 4つの視覚インジケーターによる環境識別
+・Favicon バッジ：開いているページの Favicon に環境ラベル（PROD, STG など最大4文字）を動的に重ねて表示します。多数のタブを開いていても接続先環境を一目で判別できます。
+・ページ内フローティングバッジ：ページの四隅に半透明の環境バッジを固定表示します。クリックやテキスト選択を透過する設計のため、ページ上の操作を妨げません。
+・ツールバーアイコン連動：ブラウザ右上の拡張機能アイコンにも現在の環境バッジ（および一時OFF状態）をリアルタイムに描画します。
+・デベロッパーツール（コンソール）連携：ブラウザのコンソールに現在の環境名をカラー出力します。デバッグ作業中も接続先環境をすぐに確認できます。
 
-💻 デベロッパーツール（コンソール）連携
-ブラウザのコンソールログに現在の環境名をカラー出力します。開発中にデベロッパーツールを開いた際、即座に接続先環境を確認できます。
+■ クイック操作ポップアップと一時OFF機能
+・ワンクリック環境割り当て：ツールバーのポップアップから、現在開いているサイト（ホスト名またはホスト名＋ポート番号）をその場で各環境へ登録・解除できます。
+・一時OFF（ミュート）機能：現在のサイトのみ、または拡張機能全体のバッジ表示を一時停止できます。ページを再読み込みすることなく元の Favicon と画面状態へ即座に復元され、ブラウザ再起動時には自動でONに復帰するため戻し忘れを防ぎます。
 
-🛠️ 自由度の高いカスタマイズ
-バッジのテキスト（最大4文字）、文字色、フチドリ色、フォントサイズ、表示位置などを環境ごとに細かく設定できます。
+■ 自由度の高いカスタマイズ
+・デフォルトの3環境（Production / Staging / Development）に加え、QA・UAT・Local などのカスタム環境を制限なく追加できます。
+・環境ごとに各インジケーターの個別ON/OFF、バッジのテキスト（最大4文字）、文字色、フチドリ色、ページ内バッジの表示位置（四隅）とフォントサイズを細かく設定できます。
 
-🔍 正規表現による高度なマッチング
-単純なドメイン一致だけでなく、正規表現を用いた柔軟なホスト名判定が可能です。複雑な URL 構造を持つプロジェクトにも対応します。
+✨ 【 特徴的な機能 】
+■ ポート番号・URLパス・正規表現に対応した柔軟なマッチング
+・ドメイン単位だけでなく、ポート番号（例：localhost:3000 と localhost:8080 の区別）やサブディレクトリ（例：example.com/stg）を含めたURLパターン指定、および正規表現（Regex）に対応しています。
+・複数のルールが同時に一致する場合は、詳細度の高いルール（より深いパス指定 ＞ ポート指定あり ＞ ホスト名のみ、通常パターン ＞ 正規表現）が設定順にかかわらず自動で優先適用されます。
 
-🌓 ダークモード & 多言語対応
-モダンな UI で、ダークモードを完備。英語と日本語をシームレスに切り替えて利用できます。
+■ SPA（シングルページアプリケーション）の画面内遷移へのリアルタイム追従
+・ページ全体の再読み込みを伴わないURLパスの遷移や、サイト側による動的な Favicon 変更を自動検知し、遷移先のURLに応じてバッジの適用や元の状態への復元を即座に反映します。
 
-📦 設定のインポート/エクスポート
-作成した環境設定を JSON 形式で書き出し・読み込みできます。チームメンバー間での設定共有も簡単です。
+■ 誤編集を防ぐポップアップ保護ロック
+・パス指定ルールや正規表現、親ホスト設定によって一致しているページでは、ポップアップ上での誤操作による共有ルールの上書き・削除を防ぐためロック案内を表示し、オプション画面での安全な編集へ誘導します。
 
-【使い方】
-1️⃣ 拡張機能のオプション画面を開きます。
-2️⃣ 「環境追加」から、識別したい環境（例：Local, Staging）を作成します。
-3️⃣ 対象となるホスト名（例：localhost, stg.example.com）を登録し、バッジの色を自分好みにカスタマイズして保存すれば完了です！
+📌 【 使用方法 】
+■ ポップアップから素早く登録する場合
+1. 識別したいWebページを開き、ブラウザのツールバーにある EnvIcon アイコンをクリックします。
+2. 表示された環境リストから割り当てたい環境をクリックすると、即座にバッジが適用されます。
 
-【プライバシーとセキュリティ】
-すべての設定データはブラウザの同期ストレージ（chrome.storage.sync）に保存されます。入力されたホスト名や設定情報が外部のサーバーに送信されることは一切ありません。
+■ オプション画面で詳細に設定する場合
+1. ポップアップ右上の歯車アイコン、または拡張機能メニューからオプション画面を開きます。
+2. 既存の環境を編集するか、「環境追加」ボタンから新しい環境を作成します。
+3. 対象のURLパターン（例：localhost:3000、stg.example.com、example.com/admin など）を入力し、バッジの配色や表示位置を調整します。変更内容は入力検証のうえ自動的に保存され、開いているタブへ即座に反映されます。
+
+⚙️ 【 開発者・上級者向け機能 】
+■ リアルタイム URL チェッカー
+・オプション画面内で任意のURLを入力してテストでき、優先順位ルールに基づいて実際に適用される環境バッジのプレビューと、一致したパターン行のハイライトをその場で確認できます。
+
+■ 自動保存と入力不備理由の即時確認
+・設定変更はリアルタイムにバリデーションと自動保存が行われます。カラーコードやURL構文の不備、環境間でのパターン重複などがある場合は保存を保留し、画面下部のステータス表示にマウスオーバー（またはフォーカス）することで環境ごとの具体的な不備理由を一覧で確認できます。
+
+■ パターン管理とチーム間での設定共有
+・登録したURLパターンは削除せずに個別の有効/無効（ON/OFF）を切り替えられるほか、ドラッグ＆ドロップによる優先順の並び替えに対応しています。また、環境設定を JSON 形式でエクスポート・インポートできるため、チームメンバー間での設定共有やバックアップに活用できます。
+
+■ ダークモード・多言語UI・ブラウザ間同期
+・ライトモードとダークモードの切り替え、日本語と英語の表示切り替え、初回オンボーディングツアー、および Chrome 同期ストレージによる同一アカウント間での設定自動同期に対応しています。
 
 ---
 
 ## English
 
-[Summary] (Max 132 chars)
-Instantly identify Prod, Staging, and Dev environments with favicon badges! A must-have tool for developers to prevent misoperations.
+### **Name**
+EnvIcon - Environment Identifier & Favicon Badge
 
-[Overview]
-EnvIcon is a browser extension designed for developers who manage multiple environments simultaneously.
-Prevent critical mistakes like "I thought this was Staging, but it was Production!" with clear visual indicators.
-It dynamically applies badges to favicons, displays floating page badges, and outputs console logs based on your hostname or regex patterns.
+### **Short Description**
+Visually distinguish Production, Staging, and Development environments with dynamic favicon, in-page, and toolbar badges.
 
-[Key Features]
-🚀 Dynamic Favicon Badging
-Overlays environment labels (e.g., PROD, STG) on the current page's favicon. Easily identify environments even with many tabs open.
+### **Detailed Description**
+💡 [ OVERVIEW ]
+EnvIcon is a Chrome extension built for developers, QA engineers, and system operators who work across multiple environments (such as Production, Staging, and Development) simultaneously.
+Based on your configured URL patterns - including hostnames, port numbers, URL paths, and regular expressions - EnvIcon dynamically applies favicon overlays, floating in-page badges, toolbar icon indicators, and DevTools console logs to help prevent accidental actions in the wrong environment.
 
-🌟 In-Page Floating Badges
-Displays a semi-transparent environment badge at any corner of the page. Stay aware of your current environment while you work.
+🛠️ [ CORE FEATURES ]
+* Four Visual Environment Indicators
+- Dynamic Favicon Badge: Overlays an environment label (up to 4 characters, such as PROD or STG) onto the page's favicon so you can identify environments at a glance across many open tabs.
+- In-Page Floating Badge: Displays a semi-transparent badge fixed to any corner of the viewport. Uses click-through styling so it never blocks page clicks or text selection.
+- Dynamic Toolbar Icon: Updates the extension toolbar icon in real time to reflect the matched environment or paused state.
+- DevTools Console Output: Prints the active environment name in color within the browser console for quick verification during debugging.
 
-💻 DevTools (Console) Integration
-Prints the current environment name in the browser console with colors. Instantly verify which environment you are connected to while debugging.
+* Quick Action Popup & Temporary Pause
+- One-Click Assignment: Assign or remove the current site (hostname or hostname:port) to any environment directly from the toolbar popup without opening the options page.
+- Temporary Mute (Per-Site or Global): Pause indicators for the current site or across all sites with a single toggle. The original favicon and page state are restored immediately without reloading, and indicators automatically resume when the browser restarts so you do not forget to turn them back on.
 
-🛠️ Highly Customizable
-Tailor badge text (up to 4 chars), text colors, outlines, font sizes, and positions for each environment.
+* Flexible Customization
+- Includes Production, Staging, and Development presets out of the box, plus support for unlimited custom environments (such as QA, UAT, or Local).
+- Configure indicator toggles, badge text (up to 4 characters), fill color, outline color, badge corner position, and font size independently for each environment.
 
-🔍 Advanced Regex Matching
-Supports flexible hostname matching using regular expressions. Perfect for projects with complex URL structures.
+✨ [ DISTINGUISHING FEATURES ]
+* Port, URL Path, and Regex Matching with Smart Priority
+- Match rules by hostname, port number (e.g., distinguishing localhost:3000 from localhost:8080), URL path prefix on segment boundaries (e.g., example.com/stg), or regular expressions (Regex).
+- When multiple rules match the same URL, specificity-based priority automatically selects the most specific rule (deeper URL path > port-specific rule > hostname-only rule; exact pattern > regex) regardless of environment order.
 
-🌓 Dark Mode & Multi-language Support
-Features a modern UI with full dark mode support. Seamlessly switch between English and Japanese.
+* Real-Time SPA Navigation & Dynamic Favicon Support
+- Tracks client-side URL changes in Single Page Applications (pushState / popstate) as well as dynamic favicon updates by the host site, applying or restoring badges immediately without a page reload.
 
-📦 Export/Import Settings
-Easily export and import your configurations as JSON files. Perfect for sharing environment settings within your team.
+* Accidental Edit Protection in Popup
+- When a page matches via a shared URL path rule, regular expression, or parent hostname rule, the popup locks one-click overwriting and guides you to the options page to prevent unintended changes to shared rules.
 
-[How to Use]
-1. Open the extension options page.
-2. Click "Add Environment" to create a new environment (e.g., Local, Staging).
-3. Register your hostnames (e.g., localhost, stg.example.com), customize the badge style, and save!
+📌 [ HOW TO USE ]
+* Quick Setup from the Toolbar Popup
+1. Open the target web page and click the EnvIcon icon in the browser toolbar.
+2. Select an environment from the list to apply the badge immediately.
 
-[Privacy & Security]
-All configuration data is stored locally via chrome.storage.sync. No data is ever sent to external servers.
+* Detailed Configuration in the Options Page
+1. Click the gear icon in the popup (or open Extension Options) to launch the settings page.
+2. Edit an existing environment or click "+ Add Environment" to create a custom one.
+3. Enter target URL patterns (e.g., localhost:3000, stg.example.com, example.com/admin) and adjust badge colors, text, and position. Valid changes are saved automatically and applied to open tabs in real time.
+
+⚙️ [ DEVELOPER & POWER-USER FEATURES ]
+* Built-In URL Checker
+- Test any URL directly in the options page to preview the resulting environment badge and highlight the exact winning pattern row based on priority rules.
+
+* Auto-Save with Validation Reason Popover
+- All configuration edits are validated and auto-saved. If an invalid format or duplicate pattern is detected across environments, hovering over (or focusing) the footer status indicator displays a grouped list of specific validation reasons.
+
+* Pattern Controls & Team Sharing (JSON Import / Export)
+- Toggle individual URL patterns on or off without deleting them, and reorder pattern priority via drag-and-drop. Export and import full environment configurations as JSON files for backups or team sharing.
+
+* Light / Dark Theme, Bilingual UI, and Browser Sync
+- Supports Light and Dark themes, instant switching between English and Japanese UI, an interactive onboarding tour, and automatic cross-device synchronization via Chrome Sync storage.
