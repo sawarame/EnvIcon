@@ -7,7 +7,11 @@ import {
   initializePageBadgeFeature,
   refreshPageBadgeFeature,
 } from "./features/page_badge_changer";
-import { initializeConsoleLoggerFeature } from "./features/console_logger";
+import {
+  initializeConsoleLoggerFeature,
+  refreshConsoleLoggerFeature,
+} from "./features/console_logger";
+import { initializeUrlObserverFeature } from "./features/url_observer";
 import { getSessionData } from "./features/utils";
 
 let currentSyncData: SyncData = {};
@@ -23,9 +27,20 @@ const loadSyncData = async (): Promise<SyncData> => {
 };
 
 /**
- * ストレージ変更イベントを受け取り、ページ上の表示をリアルタイムで更新する関数
+ * 現在の設定・一時OFF状態・ロケーションに基づいてページ上の全機能を一括再評価する関数
+ * @returns なし
+ */
+const refreshAllFeatures = (): void => {
+  refreshFaviconChangerFeature(currentSyncData, currentSessionData);
+  refreshPageBadgeFeature(currentSyncData, currentSessionData);
+  refreshConsoleLoggerFeature(currentSyncData, currentSessionData);
+};
+
+/**
+ * ストレージ変更イベントを受け取り、ページ上の表示をリアルタイムで更新する非同期関数
  * @param changes - 変更されたキーと値のマップ
  * @param areaName - 変更が発生したストレージ領域名
+ * @returns 更新処理完了を表す Promise
  */
 const handleStorageChange = async (
   changes: { [key: string]: chrome.storage.StorageChange },
@@ -45,12 +60,11 @@ const handleStorageChange = async (
     currentSessionData = await getSessionData();
   }
 
-  refreshFaviconChangerFeature(currentSyncData, currentSessionData);
-  refreshPageBadgeFeature(currentSyncData, currentSessionData);
+  refreshAllFeatures();
 };
 
 /**
- * コンテンツスクリプトの初期化およびストレージ監視を開始する非同期関数
+ * コンテンツスクリプトの初期化、画面内URL遷移監視、およびストレージ監視を開始する非同期関数
  * @returns 初期化完了を表す Promise
  */
 export const init = async (): Promise<void> => {
@@ -70,6 +84,11 @@ export const init = async (): Promise<void> => {
 
   // コンソールに環境名を表示する
   initializeConsoleLoggerFeature(currentSyncData, currentSessionData);
+
+  // SPA 等の画面内URLパス遷移を検知してリロードなしで表示を再評価する
+  initializeUrlObserverFeature(() => {
+    refreshAllFeatures();
+  });
 
   // ポップアップや設定画面での変更をリロードなしで即時反映する
   chrome.storage.onChanged.addListener((changes, areaName) => {

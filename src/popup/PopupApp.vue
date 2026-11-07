@@ -2,39 +2,46 @@
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import Button from "primevue/button";
 import ToggleSwitch from "primevue/toggleswitch";
-import { EnvironmentConfig, SyncData } from "../types";
+import { EnvironmentConfig, SyncData, TargetLocation } from "../types";
 import { Language, setLanguage, t } from "../options/i18n";
-import { getHostname } from "../options/utils";
+import { normalizeUrlPattern } from "../options/utils";
 import {
   createDefaultEnvironments,
-  extractSupportedHostname,
   findMatchingDetail,
   getSessionData,
+  parseTargetLocation,
 } from "../features/utils";
 
 /** 拡張機能全体が有効かどうか（false の場合は全体一時OFF） */
 const globalEnabled = ref<boolean>(true);
-/** サイト単位で一時OFFにしているホスト名のリスト */
+/** サイト単位で一時OFFにしているホスト識別子（hostname[:port]）のリスト */
 const disabledHostnames = ref<string[]>([]);
 /** 環境設定一覧 */
 const environments = ref<EnvironmentConfig[]>([]);
-/** 現在アクティブなタブのホスト名（対象外ページの場合は null） */
-const currentHostname = ref<string | null>(null);
+/** 現在アクティブなタブの評価対象ロケーション（対象外ページの場合は null） */
+const currentTarget = ref<TargetLocation | null>(null);
 /** 初期データ読み込み完了フラグ */
 const isLoaded = ref<boolean>(false);
 
 /**
- * 現在のページが拡張機能の動作対象URLかどうかを判定する算出プロパティ
+ * 現在アクティブなタブのホスト識別子（hostname[:port]）を返す算出プロパティ
  */
-const isSupportedPage = computed<boolean>(() => Boolean(currentHostname.value));
+const currentHostWithPort = computed<string | null>(
+  () => currentTarget.value?.hostWithPort ?? null
+);
 
 /**
- * 現在のサイトがサイト単位の一時OFF対象に含まれているかを判定する算出プロパティ
+ * 現在のページが拡張機能の動作対象URLかどうかを判定する算出プロパティ
+ */
+const isSupportedPage = computed<boolean>(() => Boolean(currentTarget.value));
+
+/**
+ * 現在のサイト（hostname[:port]）がサイト単位の一時OFF対象に含まれているかを判定する算出プロパティ
  */
 const isSiteMuted = computed<boolean>(() => {
-  if (!currentHostname.value) return false;
-  const host = currentHostname.value.toLowerCase();
-  return disabledHostnames.value.some((h) => h.toLowerCase() === host);
+  if (!currentHostWithPort.value) return false;
+  const hostKey = currentHostWithPort.value.toLowerCase();
+  return disabledHostnames.value.some((h) => h.toLowerCase() === hostKey);
 });
 
 /**
@@ -45,11 +52,11 @@ const isEffectiveMuted = computed<boolean>(
 );
 
 /**
- * 現在のホスト名に対する環境マッチング詳細情報を返す算出プロパティ
+ * 現在のタブのロケーションに対する環境マッチング詳細情報を返す算出プロパティ
  */
 const matchDetail = computed(() => {
-  if (!currentHostname.value) return null;
-  return findMatchingDetail(environments.value, currentHostname.value);
+  if (!currentTarget.value) return null;
+  return findMatchingDetail(environments.value, currentTarget.value);
 });
 
 /**
@@ -60,10 +67,10 @@ const matchedEnv = computed<EnvironmentConfig | null>(
 );
 
 /**
- * 正規表現パターンによって一致しているかどうかを返す算出プロパティ
+ * パス指定・正規表現・ポートなし親ルール等によりポップアップ編集をロックすべきかを返す算出プロパティ
  */
-const isRegexLocked = computed<boolean>(() =>
-  Boolean(matchDetail.value?.isRegexMatch)
+const isPatternLocked = computed<boolean>(() =>
+  Boolean(matchDetail.value && !matchDetail.value.isExactHostPortMatch)
 );
 
 /**
@@ -98,38 +105,39 @@ const onToggleGlobal = async (enabled: boolean): Promise<void> => {
 };
 
 /**
- * 現在のサイトの一時OFFスイッチを切り替えてセッションストレージに保存する非同期関数
+ * 現在のサイト（hostname[:port]）の一時OFFスイッチを切り替えてセッションストレージに保存する非同期関数
  * @param muted - このサイトを一時OFFにする場合は true、解除する場合は false
  * @returns 保存完了を表す Promise
  */
 const onToggleSiteMute = async (muted: boolean): Promise<void> => {
-  if (!currentHostname.value) return;
-  const host = currentHostname.value.toLowerCase();
+  if (!currentHostWithPort.value) return;
+  const hostKey = currentHostWithPort.value.toLowerCase();
   const filtered = disabledHostnames.value.filter(
-    (h) => h.toLowerCase() !== host
+    (h) => h.toLowerCase() !== hostKey
   );
-  const updated = muted ? [...filtered, host] : filtered;
+  const updated = muted ? [...filtered, hostKey] : filtered;
   disabledHostnames.value = updated;
   await chrome.storage.session.set({ disabledHostnames: updated });
 };
 
 /**
- * 全環境の通常ホスト名リストから指定ホスト名および空行を除去した新しい環境配列を生成する関数
+ * 全環境の通常パターンリストから指定された hostWithPort と完全一致する項目および空行を除去する関数
+ * パス指定パターンや正規表現パターン、別ポートの設定は保護してそのまま残す
  * @param sourceEnvs - 元となる環境設定の配列
- * @param targetHostname - 除去対象のホスト名（小文字）
+ * @param targetHostWithPort - 除去対象のホスト識別子（小文字の hostname[:port]）
  * @returns 整理済みの新しい環境設定配列
  */
-const removeExactHostnameFromEnvs = (
+const removeExactHostPortFromEnvs = (
   sourceEnvs: EnvironmentConfig[],
-  targetHostname: string
+  targetHostWithPort: string
 ): EnvironmentConfig[] => {
   return sourceEnvs.map((env) => {
     const cleanedHostnames = (env.hostnames || []).filter((hn) => {
       const trimmed = hn.value.trim();
       if (!trimmed) return false;
       if (hn.isRegex) return true;
-      const normalized = (getHostname(trimmed) || trimmed).toLowerCase();
-      return normalized !== targetHostname;
+      const normalized = normalizeUrlPattern(trimmed) ?? trimmed.toLowerCase();
+      return normalized !== targetHostWithPort;
     });
     return {
       ...env,
@@ -139,40 +147,40 @@ const removeExactHostnameFromEnvs = (
 };
 
 /**
- * 現在のホスト名の環境登録を解除して同期ストレージへ保存する非同期関数
+ * 現在の hostWithPort の環境登録を解除して同期ストレージへ保存する非同期関数
  * @returns 保存完了を表す Promise
  */
 const unassignCurrentHostname = async (): Promise<void> => {
-  if (!currentHostname.value || isRegexLocked.value) return;
-  const host = currentHostname.value.toLowerCase();
-  const updatedEnvs = removeExactHostnameFromEnvs(environments.value, host);
+  if (!currentHostWithPort.value || isPatternLocked.value) return;
+  const hostKey = currentHostWithPort.value.toLowerCase();
+  const updatedEnvs = removeExactHostPortFromEnvs(environments.value, hostKey);
   environments.value = updatedEnvs;
   await chrome.storage.sync.set({ environments: updatedEnvs });
 };
 
 /**
- * 現在のホスト名を指定された環境へ割り当て（既に選択中の場合は登録解除）して保存する非同期関数
+ * 現在の hostWithPort を指定された環境へ割り当て（既に選択中の場合は登録解除）して保存する非同期関数
  * @param targetEnvId - 割り当て先の環境ID
  * @returns 保存完了を表す Promise
  */
 const assignToEnvironment = async (targetEnvId: string): Promise<void> => {
-  if (!currentHostname.value || isRegexLocked.value) return;
+  if (!currentHostWithPort.value || isPatternLocked.value) return;
 
-  // 既に同じ環境に通常ホスト名で割り当て済みの場合は再クリックで解除する
+  // 既に同じ環境に完全一致パターンで割り当て済みの場合は再クリックで解除する
   if (matchedEnv.value?.id === targetEnvId) {
     await unassignCurrentHostname();
     return;
   }
 
-  const host = currentHostname.value.toLowerCase();
-  const cleanedEnvs = removeExactHostnameFromEnvs(environments.value, host);
+  const hostKey = currentHostWithPort.value.toLowerCase();
+  const cleanedEnvs = removeExactHostPortFromEnvs(environments.value, hostKey);
   const updatedEnvs = cleanedEnvs.map((env) => {
     if (env.id !== targetEnvId) return env;
     return {
       ...env,
       hostnames: [
         ...env.hostnames,
-        { value: host, isRegex: false, enabled: true },
+        { value: hostKey, isRegex: false, enabled: true },
       ],
     };
   });
@@ -198,6 +206,7 @@ const openOptionsPage = async (): Promise<void> => {
  * ストレージの変更を監視してポップアップ内の表示状態を最新化するリスナー関数
  * @param changes - 変更されたストレージキーのマップ
  * @param areaName - 変更が発生したストレージ領域名
+ * @returns 更新処理完了を表す Promise
  */
 const handleStorageChanged = async (
   changes: { [key: string]: chrome.storage.StorageChange },
@@ -220,6 +229,7 @@ const handleStorageChanged = async (
  * chrome.storage.onChanged に登録するためのイベントリスナーラッパー関数
  * @param changes - 変更されたストレージキーのマップ
  * @param areaName - 変更が発生したストレージ領域名
+ * @returns なし
  */
 const storageListener = (
   changes: { [key: string]: chrome.storage.StorageChange },
@@ -252,9 +262,9 @@ onMounted(async () => {
       : window.matchMedia("(prefers-color-scheme: dark)").matches;
   document.documentElement.classList.toggle("my-app-dark", darkMode);
 
-  // アクティブタブのホスト名を抽出
+  // アクティブタブのロケーション情報を抽出
   const activeTab = tabs[0];
-  currentHostname.value = extractSupportedHostname(activeTab?.url);
+  currentTarget.value = parseTargetLocation(activeTab?.url);
 
   // 環境リストの初期化
   environments.value =
@@ -352,8 +362,8 @@ onUnmounted(() => {
             </span>
           </div>
 
-          <div class="hostname-display" :title="currentHostname || ''">
-            {{ currentHostname }}
+          <div class="hostname-display" :title="currentHostWithPort || ''">
+            {{ currentHostWithPort }}
           </div>
 
           <!-- このサイトを一時OFFトグル -->
@@ -379,7 +389,7 @@ onUnmounted(() => {
           <div class="assign-header">
             <span class="section-caption">{{ t("popupAssignEnvTitle") }}</span>
             <button
-              v-if="matchedEnv && !isRegexLocked"
+              v-if="matchedEnv && !isPatternLocked"
               type="button"
               class="unassign-link-btn"
               @click="unassignCurrentHostname"
@@ -389,8 +399,8 @@ onUnmounted(() => {
             </button>
           </div>
 
-          <!-- 正規表現パターンで一致中のロック案内 -->
-          <div v-if="isRegexLocked && matchDetail" class="regex-lock-box">
+          <!-- パス指定・正規表現・広域ホストパターンで一致中のロック案内 -->
+          <div v-if="isPatternLocked && matchDetail" class="regex-lock-box">
             <div class="regex-lock-header">
               <i class="pi pi-lock"></i>
               <span>{{ getEnvDisplayName(matchDetail.env) }}</span>
@@ -408,7 +418,13 @@ onUnmounted(() => {
               <span class="regex-label">{{ t("popupRegexPatternLabel") }}</span>
               <code>{{ matchDetail.pattern.value }}</code>
             </div>
-            <p class="regex-lock-desc">{{ t("popupRegexLockedMsg") }}</p>
+            <p class="regex-lock-desc">
+              {{
+                matchDetail.isRegexMatch
+                  ? t("popupRegexLockedMsg")
+                  : t("popupPatternLockedMsg")
+              }}
+            </p>
             <Button
               :label="t('popupOpenSettings')"
               icon="pi pi-external-link"
@@ -783,7 +799,7 @@ body {
   text-align: center;
 }
 
-/* 正規表現ロック表示 */
+/* パターン一致ロック表示 */
 .regex-lock-box {
   background-color: var(--popup-card-bg);
   border: 1px solid var(--popup-border);

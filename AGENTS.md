@@ -20,12 +20,12 @@ EnvIcon は、開発・ステージング・本番などの各環境を視覚的
 
 - `src/`: TypeScript ソースコード、Vue コンポーネント、スタイル、マスター SVG
   - `background.ts`: サービスワーカー（ツールバーアイコンの動的描画、ストレージアクセス権限設定、画像取得プロキシ等）
-  - `content.ts`: Web ページ注入スクリプト（初期データ読み込み・ストレージ変更監視のオーケストレーター）
+  - `content.ts`: Web ページ注入スクリプト（初期データ読み込み・画面内URL遷移監視・ストレージ変更監視のオーケストレーター）
   - `options.ts`: オプション設定画面の Vue マウント用エントリーポイント
   - `popup.ts`: クイック操作ポップアップ画面の Vue マウント用エントリーポイント
   - `types.ts`: コンテキスト間で共有するインターフェース・型定義
   - `env.d.ts`: Vue SFC などのモジュール型定義
-  - `features/`: ページ上で動作する各機能のモジュール（`favicon_changer.ts`, `page_badge_changer.ts`, `console_logger.ts`, `utils.ts`）
+  - `features/`: ページ上で動作する各機能のモジュール（`favicon_changer.ts`, `page_badge_changer.ts`, `console_logger.ts`, `url_observer.ts`, `utils.ts`）
   - `options/`: オプション画面の Vue コンポーネント（`App.vue`, `components/`）、多言語辞書（`i18n.ts`）、スタイル（`App.css`）
   - `popup/`: ポップアップ画面の Vue コンポーネント（`PopupApp.vue`）
 - `package/`: 拡張機能の配布パッケージ用ディレクトリ
