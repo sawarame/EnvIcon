@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { EnvironmentConfig, HostnamePattern } from '../../types';
-import { t } from '../i18n';
+import {
+  EnvironmentConfig,
+  EnvValidationErrorState,
+  HostnamePattern,
+  PageBadgePosition,
+} from '../../types';
+import { t, TranslationKey } from '../i18n';
 import HostnameList from './HostnameList.vue';
 
 import Card from 'primevue/card';
@@ -15,9 +20,19 @@ import Divider from 'primevue/divider';
 import InputGroup from 'primevue/inputgroup';
 import InputGroupAddon from 'primevue/inputgroupaddon';
 
+/** PrimeVue InputText コンポーネントのフォーカス操作用参照型 */
+interface FocusableInputRef {
+  focus?: () => void;
+  $el?: HTMLElement;
+}
+
 const props = defineProps<{
+  /** 対象環境の設定データ */
   envConfig: EnvironmentConfig;
-  checkerHostname?: string | null;
+  /** URLチェッカーでこの環境が採用された場合の該当パターン行インデックス（非該当時は null） */
+  matchedPatternIndex?: number | null;
+  /** この環境のバリデーションエラー状態 */
+  validationError?: EnvValidationErrorState;
 }>();
 
 const emit = defineEmits<{
@@ -26,28 +41,61 @@ const emit = defineEmits<{
   (e: 'undo'): void;
 }>();
 
-const nameInput = ref<any>(null);
+const nameInput = ref<FocusableInputRef | null>(null);
 
-// --- イベントエミッターへの連携（自身でv-modelを実現するためのロジック） ---
-const updateField = <K extends keyof EnvironmentConfig>(field: K, value: EnvironmentConfig[K]) => {
+/**
+ * 環境設定の特定フィールドを更新して親コンポーネントへ通知する関数
+ * @param field - 更新対象のプロパティ名
+ * @param value - 設定する新しい値
+ * @returns なし
+ */
+const updateField = <K extends keyof EnvironmentConfig>(
+  field: K,
+  value: EnvironmentConfig[K]
+): void => {
   emit('update:envConfig', { ...props.envConfig, [field]: value });
 };
 
-const updateHostnames = (newHostnames: HostnamePattern[]) => {
+/**
+ * URLパターンリストの更新を親コンポーネントへ通知する関数
+ * @param newHostnames - 更新後のパターン配列
+ * @returns なし
+ */
+const updateHostnames = (newHostnames: HostnamePattern[]): void => {
   emit('update:envConfig', { ...props.envConfig, hostnames: newHostnames });
 };
 
-const deleteSection = () => {
+/**
+ * ページ内バッジ表示位置の選択変更を親コンポーネントへ通知する関数
+ * @param position - 選択された表示位置
+ * @returns なし
+ */
+const onPositionChange = (position: PageBadgePosition): void => {
+  updateField('pageBadgePosition', position);
+};
+
+/**
+ * この環境セクションの削除イベントを発火する関数
+ * @returns なし
+ */
+const deleteSection = (): void => {
   emit('delete', props.envConfig.id);
 };
 
-const undoChanges = () => {
+/**
+ * この環境セクションの編集取り消しイベントを発火する関数
+ * @returns なし
+ */
+const undoChanges = (): void => {
   emit('undo');
 };
 
-const focusNameInput = () => {
+/**
+ * カスタム環境名の入力フィールドにフォーカスを当てる関数
+ * @returns なし
+ */
+const focusNameInput = (): void => {
   if (nameInput.value) {
-    // PrimeVueのInputTextは内部のinput要素にアクセスするか、コンポーネントのfocusメソッドを使用する
     if (typeof nameInput.value.focus === 'function') {
       nameInput.value.focus();
     } else if (nameInput.value.$el && typeof nameInput.value.$el.focus === 'function') {
@@ -57,23 +105,52 @@ const focusNameInput = () => {
 };
 
 const isDefaultEnv = ["prod", "stg", "dev"].includes(props.envConfig.id);
-const envNameKey = props.envConfig.id === "prod" ? "ProductionName" : props.envConfig.id === "stg" ? "StagingName" : props.envConfig.id === "dev" ? "DevelopmentName" : "";
+const defaultEnvNameKey: TranslationKey | null =
+  props.envConfig.id === "prod"
+    ? "ProductionName"
+    : props.envConfig.id === "stg"
+      ? "StagingName"
+      : props.envConfig.id === "dev"
+        ? "DevelopmentName"
+        : null;
 
-// --- 多言語対応のため、Computedでオプションを定義する ---
-// 言語が切り替わった際にリアルタイムにリストの中身を再評価する
+/**
+ * デフォルト環境（PROD / STG / DEV）のローカライズ済み表示タイトルを返す算出プロパティ
+ */
+const defaultEnvTitle = computed<string>(() =>
+  defaultEnvNameKey ? t(defaultEnvNameKey) : ""
+);
+
+/**
+ * 現在の表示言語に応じたページ内バッジ位置の選択肢リストを返す算出プロパティ
+ */
 const badgePositionOptions = computed(() => [
-  { label: t('badgePosTopLeft'), value: 'top-left' },
-  { label: t('badgePosTopRight'), value: 'top-right' },
-  { label: t('badgePosBottomLeft'), value: 'bottom-left' },
-  { label: t('badgePosBottomRight'), value: 'bottom-right' },
+  { label: t('badgePosTopLeft'), value: 'top-left' as PageBadgePosition },
+  { label: t('badgePosTopRight'), value: 'top-right' as PageBadgePosition },
+  { label: t('badgePosBottomLeft'), value: 'bottom-left' as PageBadgePosition },
+  { label: t('badgePosBottomRight'), value: 'bottom-right' as PageBadgePosition },
 ]);
 
-const onColorChange = (field: 'badgeColor' | 'badgeOutlineColor', value: string) => {
+/**
+ * カラーピッカーからの選択値を HEX 形式に整えて更新する関数
+ * @param field - 更新対象のカラーフィールド名
+ * @param value - カラーピッカーから渡された色文字列
+ * @returns なし
+ */
+const onColorChange = (
+  field: 'badgeColor' | 'badgeOutlineColor',
+  value: string
+): void => {
   const hex = value.startsWith('#') ? value : `#${value}`;
   updateField(field, hex);
 };
 
-const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
+/**
+ * カラーピッカー表示用に先頭の '#' を除いた色文字列を取得する関数
+ * @param field - 取得対象のカラーフィールド名
+ * @returns '#' を除いたHEXカラー文字列
+ */
+const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor'): string => {
   const val = props.envConfig[field] || '#ffffff';
   return val.replace('#', '');
 };
@@ -85,7 +162,7 @@ const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
       <div class="card-header-flex px-4 pt-4">
         <div class="header-title-area">
           <span v-if="isDefaultEnv" class="env-title-text">
-            {{ t(envNameKey as any) }}
+            {{ defaultEnvTitle }}
           </span>
           <div v-else class="flex items-center gap-1">
             <Button 
@@ -101,8 +178,8 @@ const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
               ref="nameInput"
               type="text" 
               class="env-name-input-styled"
-              :class="{ 'p-invalid': (envConfig as any)._invalidName }"
-              v-model="envConfig.name" 
+              :class="{ 'p-invalid': validationError?.invalidName }"
+              :modelValue="envConfig.name"
               @input="updateField('name', ($event.target as HTMLInputElement).value)"
               maxlength="50" 
               placeholder="Environment Name"
@@ -111,7 +188,7 @@ const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
         </div>
         
         <div class="flex items-center gap-2">
-           <Button 
+          <Button 
             icon="pi pi-undo" 
             text 
             rounded
@@ -133,10 +210,10 @@ const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
 
     <template #content>
       <div class="content-wrapper px-4 pb-4">
-        <!-- 3-Column Settings Grid -->
+        <!-- 3カラム設定グリッド -->
         <div class="smart-settings-container mt-4">
           <div class="settings-grid-layout">
-            <!-- Column 1: Toggles -->
+            <!-- カラム 1: 機能トグル -->
             <div class="settings-column toggles-col">
               <div class="group-header">
                 <i class="pi pi-bolt"></i>
@@ -148,8 +225,8 @@ const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
                     <span class="text-sm font-bold">{{ t('enableFaviconPerEnv') }}</span>
                   </div>
                   <ToggleSwitch
-                    v-model="envConfig.faviconEnabled"
-                    @update:modelValue="updateField('faviconEnabled', $event)"
+                    :modelValue="envConfig.faviconEnabled !== false"
+                    @update:modelValue="updateField('faviconEnabled', Boolean($event))"
                   />
                 </div>
                 <div class="toggle-row-item">
@@ -157,8 +234,8 @@ const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
                     <span class="text-sm font-bold">{{ t('enablePageBadgePerEnv') }}</span>
                   </div>
                   <ToggleSwitch
-                    v-model="envConfig.pageBadgeEnabled"
-                    @update:modelValue="updateField('pageBadgeEnabled', $event)"
+                    :modelValue="envConfig.pageBadgeEnabled !== false"
+                    @update:modelValue="updateField('pageBadgeEnabled', Boolean($event))"
                   />
                 </div>
                 <div class="toggle-row-item">
@@ -166,14 +243,14 @@ const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
                     <span class="text-sm font-bold">{{ t('enableConsoleLogPerEnv') }}</span>
                   </div>
                   <ToggleSwitch
-                    v-model="envConfig.consoleLogEnabled"
-                    @update:modelValue="updateField('consoleLogEnabled', $event)"
+                    :modelValue="envConfig.consoleLogEnabled !== false"
+                    @update:modelValue="updateField('consoleLogEnabled', Boolean($event))"
                   />
                 </div>
               </div>
             </div>
 
-            <!-- Column 2: Appearance -->
+            <!-- カラム 2: バッジ外観設定 -->
             <div class="settings-column appearance-col">
               <div class="group-header">
                 <i class="pi pi-palette"></i>
@@ -182,16 +259,28 @@ const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
               <div class="column-content appearance-fields">
                 <div class="field-item">
                   <label>{{ t('badgeTextLabel') }}</label>
-                  <InputText v-model="envConfig.badgeText" maxlength="4" class="w-full" @input="updateField('badgeText', ($event.target as HTMLInputElement).value)" />
+                  <InputText
+                    :modelValue="envConfig.badgeText"
+                    maxlength="4"
+                    class="w-full"
+                    @input="updateField('badgeText', ($event.target as HTMLInputElement).value)"
+                  />
                 </div>
                 
                 <div class="field-item">
                   <label>{{ t('badgeColorLabel') }}</label>
                   <InputGroup>
                     <InputGroupAddon>
-                      <ColorPicker :modelValue="getColorValue('badgeColor')" @update:modelValue="onColorChange('badgeColor', $event as string)" />
+                      <ColorPicker
+                        :modelValue="getColorValue('badgeColor')"
+                        @update:modelValue="onColorChange('badgeColor', String($event))"
+                      />
                     </InputGroupAddon>
-                    <InputText v-model="envConfig.badgeColor" :class="{ 'p-invalid': (envConfig as any)._invalidBadgeColor }" @input="updateField('badgeColor', ($event.target as HTMLInputElement).value)" />
+                    <InputText
+                      :modelValue="envConfig.badgeColor"
+                      :class="{ 'p-invalid': validationError?.invalidBadgeColor }"
+                      @input="updateField('badgeColor', ($event.target as HTMLInputElement).value)"
+                    />
                   </InputGroup>
                 </div>
 
@@ -199,15 +288,22 @@ const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
                   <label>{{ t('badgeOutlineColorLabel') }}</label>
                   <InputGroup>
                     <InputGroupAddon>
-                      <ColorPicker :modelValue="getColorValue('badgeOutlineColor')" @update:modelValue="onColorChange('badgeOutlineColor', $event as string)" />
+                      <ColorPicker
+                        :modelValue="getColorValue('badgeOutlineColor')"
+                        @update:modelValue="onColorChange('badgeOutlineColor', String($event))"
+                      />
                     </InputGroupAddon>
-                    <InputText v-model="envConfig.badgeOutlineColor" :class="{ 'p-invalid': (envConfig as any)._invalidBadgeOutlineColor }" @input="updateField('badgeOutlineColor', ($event.target as HTMLInputElement).value)" />
+                    <InputText
+                      :modelValue="envConfig.badgeOutlineColor"
+                      :class="{ 'p-invalid': validationError?.invalidBadgeOutlineColor }"
+                      @input="updateField('badgeOutlineColor', ($event.target as HTMLInputElement).value)"
+                    />
                   </InputGroup>
                 </div>
               </div>
             </div>
 
-            <!-- Column 3: Badge Options -->
+            <!-- カラム 3: ページ内バッジ設定 -->
             <div class="settings-column options-col" :class="{ 'disabled-opacity': !envConfig.pageBadgeEnabled }">
               <div class="group-header">
                 <i class="pi pi-cog"></i>
@@ -217,25 +313,25 @@ const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
                 <div class="field-item">
                   <label>{{ t('pageBadgePosition') }}</label>
                   <Select 
-                    v-model="envConfig.pageBadgePosition"
+                    :modelValue="envConfig.pageBadgePosition"
                     :options="badgePositionOptions"
                     optionLabel="label"
                     optionValue="value"
                     class="w-full"
                     :disabled="!envConfig.pageBadgeEnabled"
-                    @update:modelValue="updateField('pageBadgePosition', $event as any)"
+                    @update:modelValue="onPositionChange($event as PageBadgePosition)"
                   />
                 </div>
 
                 <div class="field-item">
                   <label>{{ t('pageBadgeFontSize') }}</label>
                   <InputNumber 
-                    v-model="envConfig.pageBadgeFontSize"
+                    :modelValue="envConfig.pageBadgeFontSize"
                     :min="10" :max="100"
                     showButtons
                     buttonLayout="horizontal"
                     class="w-full font-size-input-field"
-                    :class="{ 'p-invalid': (envConfig as any)._invalidPageBadgeFontSize }"
+                    :class="{ 'p-invalid': validationError?.invalidPageBadgeFontSize }"
                     :disabled="!envConfig.pageBadgeEnabled"
                     @update:modelValue="updateField('pageBadgeFontSize', $event || 24)"
                   >
@@ -256,8 +352,9 @@ const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
         </Divider>
 
         <HostnameList 
-          v-model="envConfig.hostnames" 
-          :checkerHostname="checkerHostname"
+          :modelValue="envConfig.hostnames"
+          :matchedPatternIndex="matchedPatternIndex"
+          :invalidIndices="validationError?.invalidPatternIndices"
           @update:modelValue="updateHostnames"
         />
       </div>
@@ -266,9 +363,7 @@ const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
 </template>
 
 <style scoped>
-/* 
-  環境ごとの設定カードのスタイル
-*/
+/* 環境ごとの設定カードのスタイル */
 .env-card {
   margin-bottom: 2.5rem;
   border-radius: 1rem;
@@ -290,7 +385,6 @@ const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
   gap: 1rem;
 }
 
-
 .env-title-text {
   font-size: 1.125rem;
   font-weight: 700;
@@ -311,10 +405,7 @@ const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
   background: var(--item-bg-hover);
 }
 
-/* 
-  設定エリアのグリッド構成 
-  3カラムで各設定群を並べる
-*/
+/* 3カラム設定エリアのグリッド構成 */
 .smart-settings-container {
   background: var(--item-bg);
   border: 1px solid var(--border-color);
@@ -327,7 +418,7 @@ const getColorValue = (field: 'badgeColor' | 'badgeOutlineColor') => {
   grid-template-columns: 1fr 1fr 1fr;
 }
 
-/* モバイル向け対応（幅が狭い場合は縦並び1カラムに変更） */
+/* 画面幅1024px以下では縦並び1カラムに変更 */
 @media (max-width: 1024px) {
   .settings-grid-layout {
     grid-template-columns: 1fr;

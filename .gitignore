@@ -4,3 +4,5 @@ package/icons/
 package.zip
 .DS_Store
 .antigravitycli/
+*.log
+.env*

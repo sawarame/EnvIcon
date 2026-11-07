@@ -49,6 +49,7 @@ const getExternalFavicons = (): HTMLLinkElement[] => {
 
 /**
  * EnvIcon が追加したファビコンを除去し、サイト本来のファビコン状態を復元する関数
+ * @returns なし
  */
 const restoreOriginalFavicons = (): void => {
   const existingGenerated = document.getElementById(GENERATED_ID);
@@ -163,15 +164,15 @@ const updateFavicon = async (): Promise<void> => {
   const requestId = ++_currentRequestId;
 
   try {
-    const hostname = window.location.hostname;
+    const currentUrl = window.location.href;
 
     // 一時OFF（全体OFFまたはサイト単位OFF）の場合は元のファビコンへ復元する
-    if (isTemporarilyDisabled(_sessionData, hostname)) {
+    if (isTemporarilyDisabled(_sessionData, currentUrl)) {
       restoreOriginalFavicons();
       return;
     }
 
-    const env = findMatchingEnv(_syncData.environments, hostname);
+    const env = findMatchingEnv(_syncData.environments, currentUrl);
 
     if (!env || env.faviconEnabled === false) {
       restoreOriginalFavicons();
@@ -268,12 +269,19 @@ const updateFavicon = async (): Promise<void> => {
 
     /**
      * 読み込んだ元画像に環境バッジを重ねて描画し、DOMへ適用する関数
+     * @returns なし
      */
     const drawAndApply = (): void => {
       // 古いリクエストの結果なら無視する
       if (requestId !== _currentRequestId) return;
-      // 非同期読み込み中に一時OFFへ切り替わっていた場合は適用せず復元する
-      if (isTemporarilyDisabled(_sessionData, window.location.hostname)) {
+      // 非同期読み込み中に一時OFFまたは対象外URLへ切り替わっていた場合は適用せず復元する
+      const latestUrl = window.location.href;
+      const latestEnv = findMatchingEnv(_syncData.environments, latestUrl);
+      if (
+        isTemporarilyDisabled(_sessionData, latestUrl) ||
+        !latestEnv ||
+        latestEnv.faviconEnabled === false
+      ) {
         restoreOriginalFavicons();
         return;
       }
@@ -386,6 +394,7 @@ const observer = new MutationObserver((mutationsList: MutationRecord[]) => {
  * Favicon 動的書き換え機能を初期化し、DOM監視および定期チェックを開始する関数
  * @param syncData - 同期ストレージの設定データ
  * @param sessionData - セッションストレージの一時OFF設定データ
+ * @returns なし
  */
 export const initializeFaviconChangerFeature = (
   syncData: SyncData,
@@ -414,6 +423,7 @@ export const initializeFaviconChangerFeature = (
  * 設定変更や一時OFF切り替え時に Favicon 表示を即座に再評価する関数
  * @param syncData - 最新の同期ストレージ設定データ
  * @param sessionData - 最新のセッションストレージ一時OFF設定データ
+ * @returns なし
  */
 export const refreshFaviconChangerFeature = (
   syncData: SyncData,

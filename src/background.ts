@@ -1,11 +1,17 @@
 import {
   createDefaultEnvironments,
-  extractSupportedHostname,
   findMatchingEnv,
   getSessionData,
   isTemporarilyDisabled,
+  parseTargetLocation,
 } from "./features/utils";
-import { EnvironmentConfig, SessionData, SyncData } from "./types";
+import {
+  EnvironmentConfig,
+  RuntimeRequestMessage,
+  SessionData,
+  SyncData,
+  TabUrlChangedMessage,
+} from "./types";
 
 /**
  * コンテンツスクリプトからも chrome.storage.session を参照できるようアクセスレベルを設定する非同期関数
@@ -64,6 +70,7 @@ const getBaseIcon = async (): Promise<ImageBitmap> => {
  * Canvas 上に描画済みの画像をグレースケールおよび半透明（ミュート状態）に変換する関数
  * @param ctx - 対象の OffscreenCanvas 2D コンテキスト
  * @param size - キャンバスの縦横サイズ（ピクセル）
+ * @returns なし
  */
 const applyGrayscaleMuteFilter = (
   ctx: OffscreenCanvasRenderingContext2D,
@@ -219,18 +226,18 @@ const updateActionBadge = async (
     return;
   }
 
-  const hostname = extractSupportedHostname(url);
-  if (!hostname) {
+  const targetLocation = parseTargetLocation(url);
+  if (!targetLocation) {
     await updateActionIcon(tabId, null, false);
     return;
   }
 
-  if (isTemporarilyDisabled(sessionData, hostname)) {
+  if (isTemporarilyDisabled(sessionData, targetLocation)) {
     await updateActionIcon(tabId, null, true);
     return;
   }
 
-  const env = findMatchingEnv(syncData.environments, hostname);
+  const env = findMatchingEnv(syncData.environments, targetLocation);
   await updateActionIcon(tabId, env, false);
 };
 
@@ -259,10 +266,19 @@ const refreshAllTabsActionBadge = async (): Promise<void> => {
   }
 };
 
-// タブのURLや読み込み状態が更新されたときにアイコンを更新する
+// タブのURLや読み込み状態が更新されたときにアイコンを更新し、SPA等のURL変更をコンテンツスクリプトへ通知する
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status === "loading" || changeInfo.url) {
     void updateActionBadge(tabId, tab.url);
+  }
+  if (changeInfo.url) {
+    const message: TabUrlChangedMessage = {
+      type: "URL_CHANGED",
+      url: changeInfo.url,
+    };
+    void chrome.tabs.sendMessage(tabId, message).catch(() => {
+      // コンテンツスクリプトが未注入または破棄済みのタブでの送信エラーは無視する
+    });
   }
 });
 
@@ -283,17 +299,9 @@ chrome.storage.onChanged.addListener((_changes, areaName) => {
   }
 });
 
-/** コンテンツスクリプトからのメッセージ型定義 */
-interface RuntimeMessage {
-  /** メッセージ種別 */
-  type: "FETCH_IMAGE" | "GET_TAB_INFO";
-  /** 画像取得対象URL（FETCH_IMAGE 時に使用） */
-  url?: string;
-}
-
 // コンテンツスクリプトからの画像取得・タブ情報リクエストを中継する
 chrome.runtime.onMessage.addListener(
-  (message: RuntimeMessage, sender, sendResponse) => {
+  (message: RuntimeRequestMessage, sender, sendResponse) => {
     if (message.type === "FETCH_IMAGE" && message.url) {
       fetch(message.url)
         .then((response) => response.blob())

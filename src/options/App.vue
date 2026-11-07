@@ -1,9 +1,18 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted, nextTick, computed } from 'vue';
-import { SyncData, EnvironmentConfig } from '../types';
+import {
+  SyncData,
+  EnvironmentConfig,
+  EnvValidationErrorState,
+} from '../types';
 import { currentLanguage, setLanguage, t, Language } from './i18n';
-import { getHostname } from './utils';
-import { createDefaultEnvironments, getSessionData } from '../features/utils';
+import { normalizeUrlPattern } from './utils';
+import {
+  createDefaultEnvironments,
+  findMatchingDetail,
+  getSessionData,
+  parseCheckerLocation,
+} from '../features/utils';
 import EnvSection from './components/EnvSection.vue';
 import introJs from 'intro.js';
 import { useToast } from 'primevue/usetoast';
@@ -19,10 +28,34 @@ import Toast from 'primevue/toast';
 import TieredMenu from 'primevue/tieredmenu';
 import ConfirmDialog from 'primevue/confirmdialog';
 
+/** ヘッダーメニュー項目の型定義 */
+interface HeaderMenuItem {
+  /** 表示ラベル */
+  label: string;
+  /** アイコンクラス名 */
+  icon?: string;
+  /** 選択中の言語かどうか */
+  isLangCheck?: boolean;
+  /** クリック時の実行コマンド */
+  command?: () => void;
+  /** サブメニュー項目配列 */
+  items?: HeaderMenuItem[];
+}
+
+/** TieredMenu の item スロットに渡されるプロパティ型 */
+interface HeaderMenuSlotProps {
+  /** メニュー項目データ */
+  item: HeaderMenuItem;
+  /** アクション要素へバインドする属性群 */
+  props: { action: Record<string, unknown> };
+  /** サブメニューを持つかどうか */
+  hasSubmenu: boolean;
+}
+
 const toast = useToast();
 const confirm = useConfirm();
 
-const menu = ref();
+const menu = ref<{ toggle: (event: Event) => void } | null>(null);
 const fileInput = ref<HTMLInputElement | null>(null);
 
 const isDarkMode = ref(false);
@@ -41,8 +74,9 @@ const resumeGlobalNow = async (): Promise<void> => {
 /**
  * キーボードショートカット（Ctrl+S / Cmd+S）の押下イベントハンドラ
  * @param event - キーボードイベントオブジェクト
+ * @returns なし
  */
-const handleKeydown = (event: KeyboardEvent) => {
+const handleKeydown = (event: KeyboardEvent): void => {
   if ((event.ctrlKey || event.metaKey) && event.key === 's') {
     event.preventDefault();
     executeSave(true);
@@ -51,26 +85,31 @@ const handleKeydown = (event: KeyboardEvent) => {
 
 /**
  * ダークモードとライトモードの表示テーマを切り替える関数
+ * @returns なし
  */
-const toggleDarkMode = () => {
+const toggleDarkMode = (): void => {
   isDarkMode.value = !isDarkMode.value;
   if (isDarkMode.value) {
     document.documentElement.classList.add('my-app-dark');
   } else {
     document.documentElement.classList.remove('my-app-dark');
   }
-  chrome.storage.local.set({ darkMode: isDarkMode.value });
+  void chrome.storage.local.set({ darkMode: isDarkMode.value });
 };
 
 /**
  * ヘッダーのアクションメニューの表示・非表示を切り替える関数
  * @param event - イベントオブジェクト
+ * @returns なし
  */
-const toggleMenu = (event: Event) => {
-  menu.value.toggle(event);
+const toggleMenu = (event: Event): void => {
+  menu.value?.toggle(event);
 };
 
-const menuItems = computed(() => [
+/**
+ * ヘッダーの階層メニュー項目リストを返す算出プロパティ
+ */
+const menuItems = computed<HeaderMenuItem[]>(() => [
   {
     label: t('changeLanguage'),
     icon: 'pi pi-globe',
@@ -102,22 +141,29 @@ const menuItems = computed(() => [
 ]);
 
 /**
- * 現在の環境設定をJSONファイルとしてダウンロード（エクスポート）する関数
+ * 数値を2桁ゼロ埋めの文字列へ変換する補助関数
+ * @param n - 変換対象の数値
+ * @returns 2桁にゼロ埋めされた数値文字列
  */
-const handleExport = () => {
+const padTwoDigits = (n: number): string => n.toString().padStart(2, '0');
+
+/**
+ * 現在の環境設定をJSONファイルとしてダウンロード（エクスポート）する関数
+ * @returns なし
+ */
+const handleExport = (): void => {
   const dataToExport = { environments: environments.value };
   const dataStr = JSON.stringify(dataToExport, null, 2);
   const blob = new Blob([dataStr], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   
   const now = new Date();
-  const pad = (n: number) => n.toString().padStart(2, '0');
   const yyyy = now.getFullYear();
-  const mm = pad(now.getMonth() + 1);
-  const dd = pad(now.getDate());
-  const hh = pad(now.getHours());
-  const min = pad(now.getMinutes());
-  const ss = pad(now.getSeconds());
+  const mm = padTwoDigits(now.getMonth() + 1);
+  const dd = padTwoDigits(now.getDate());
+  const hh = padTwoDigits(now.getHours());
+  const min = padTwoDigits(now.getMinutes());
+  const ss = padTwoDigits(now.getSeconds());
   const filename = `EnvIcon_${yyyy}${mm}${dd}${hh}${min}${ss}.json`;
 
   const a = document.createElement('a');
@@ -132,8 +178,9 @@ const handleExport = () => {
 /**
  * 選択されたJSONファイルから設定を読み込みインポートする関数
  * @param event - ファイル入力イベントオブジェクト
+ * @returns なし
  */
-const handleImportFile = (event: Event) => {
+const handleImportFile = (event: Event): void => {
   const target = event.target as HTMLInputElement;
   const file = target.files?.[0];
   if (!file) return;
@@ -141,12 +188,18 @@ const handleImportFile = (event: Event) => {
   const reader = new FileReader();
   reader.onload = (e) => {
     try {
-      const content = e.target?.result as string;
-      const parsed = JSON.parse(content);
+      const content = typeof e.target?.result === 'string' ? e.target.result : '';
+      const parsed: unknown = JSON.parse(content);
       
-      if (!parsed || !parsed.environments || !Array.isArray(parsed.environments)) {
+      if (
+        typeof parsed !== 'object' ||
+        parsed === null ||
+        !('environments' in parsed) ||
+        !Array.isArray((parsed as { environments: unknown }).environments)
+      ) {
         throw new Error("Invalid format");
       }
+      const importedEnvs = (parsed as { environments: EnvironmentConfig[] }).environments;
       
       confirm.require({
         message: t('importConfirmMessage'),
@@ -162,12 +215,12 @@ const handleImportFile = (event: Event) => {
           severity: 'primary'
         },
         accept: () => {
-          environments.value = parsed.environments;
+          environments.value = normalizeEnvironmentsForUI(importedEnvs);
           executeSave(true);
           showToast(t('importSuccess'), false);
         }
       });
-    } catch (err) {
+    } catch {
       showToast(t('importError'), true);
     } finally {
       target.value = '';
@@ -245,7 +298,7 @@ const startTour = async (): Promise<void> => {
   });
 
   intro.onComplete(() => {
-    chrome.storage.local.set({ tutorialCompleted: true });
+    void chrome.storage.local.set({ tutorialCompleted: true });
   });
 
   intro.onExit(() => {
@@ -277,35 +330,33 @@ const startTour = async (): Promise<void> => {
 };
 
 const environments = ref<EnvironmentConfig[]>([]);
+/** 環境IDごとのバリデーションエラー状態マップ */
+const validationErrors = ref<Record<string, EnvValidationErrorState>>({});
 
 // --- URLチェッカー機能 ---
-// ユーザーが入力したURLがいずれかの環境（ホスト名や正規表現）に一致するか即座に判定する
+// ユーザーが入力したURLがいずれかの環境（ポート・パス・正規表現）に一致するか詳細度優先ルールで即座に判定する
 const checkerUrl = ref('');
 const checkerResult = computed(() => {
   const url = checkerUrl.value.trim();
   if (!url) return null;
-  const hostname = getHostname(url);
-  if (!hostname) return null;
-  
-  for (const env of environments.value) {
-    if (!env.hostnames) continue;
-    const matched = env.hostnames.some(p => {
-      if (!p.value.trim() || p.enabled === false) return false;
-      if (p.isRegex) {
-        try {
-          return new RegExp(p.value).test(hostname);
-        } catch {
-          return false;
-        }
-      }
-      return (getHostname(p.value) || p.value) === hostname;
-    });
-    
-    if (matched) {
-      return { match: true, hostname: hostname, env: env };
-    }
+  const targetLocation = parseCheckerLocation(url);
+  if (!targetLocation) return null;
+
+  const detail = findMatchingDetail(environments.value, targetLocation);
+  if (detail) {
+    return {
+      match: true,
+      env: detail.env,
+      matchedEnvIndex: detail.envIndex,
+      matchedPatternIndex: detail.patternIndex,
+    };
   }
-  return { match: false, hostname: hostname, env: null };
+  return {
+    match: false,
+    env: null,
+    matchedEnvIndex: null,
+    matchedPatternIndex: null,
+  };
 });
 
 /**
@@ -324,8 +375,9 @@ const getEnvName = (env: EnvironmentConfig): string => {
  * トースト通知を表示する関数
  * @param message - 表示するメッセージ文字列
  * @param isError - エラー表示かどうかを示すフラグ（デフォルト: false）
+ * @returns なし
  */
-const showToast = (message: string, isError: boolean = false) => {
+const showToast = (message: string, isError: boolean = false): void => {
   toast.add({
     severity: isError ? 'error' : 'success',
     summary: isError ? t('errorTitle') || 'Error' : t('successTitle') || 'Success',
@@ -368,8 +420,9 @@ const getUIStateString = (): string => {
 
 /**
  * 設定の変更を監視し、自動保存タイマー（デバウンス500ms）を開始する関数
+ * @returns なし
  */
-const onSettingsChange = () => {
+const onSettingsChange = (): void => {
   if (!isInitialized.value) return;
 
   const currentUIState = getUIStateString();
@@ -394,26 +447,28 @@ const onSettingsChange = () => {
 /**
  * 指定された環境の編集内容を直前の保存状態に戻す関数
  * @param envId - 対象の環境ID
+ * @returns なし
  */
-const undoChanges = (envId: string) => {
+const undoChanges = (envId: string): void => {
   if (!initialSettingsStr) return;
   try {
-    const initialData = JSON.parse(initialSettingsStr);
-    const originalEnv = initialData.envs.find((e: any) => e.id === envId);
+    const initialData = JSON.parse(initialSettingsStr) as { envs: EnvironmentConfig[] };
+    const originalEnv = initialData.envs.find((e) => e.id === envId);
     
     if (originalEnv) {
       const index = environments.value.findIndex(e => e.id === envId);
       if (index !== -1) {
         // 参照を切るためにディープコピー
-        environments.value[index] = JSON.parse(JSON.stringify(originalEnv));
-        // 最低1つのホスト名行を確保
+        environments.value[index] = JSON.parse(JSON.stringify(originalEnv)) as EnvironmentConfig;
+        // 最低1つのURLパターン入力行を確保
         if (!environments.value[index].hostnames || environments.value[index].hostnames.length === 0) {
-          environments.value[index].hostnames = [{ value: '', isRegex: false }];
+          environments.value[index].hostnames = [{ value: '', isRegex: false, enabled: true }];
         }
+        delete validationErrors.value[envId];
       }
     }
   } catch (err) {
-    console.error("Failed to undo changes:", err);
+    console.error("編集内容の取り消しに失敗しました:", err);
   }
 };
 
@@ -421,8 +476,9 @@ watch(environments, onSettingsChange, { deep: true });
 
 /**
  * 画面終了・リロード時に未保存のタイマーがあれば即座に保存を実行するイベントハンドラ
+ * @returns なし
  */
-const handleBeforeUnload = () => {
+const handleBeforeUnload = (): void => {
   if (autoSaveTimer) {
     executeSave(false);
   }
@@ -493,6 +549,7 @@ const handleExternalStorageChange = async (
  * chrome.storage.onChanged に登録するためのイベントリスナーラッパー関数
  * @param changes - 変更されたストレージキーのマップ
  * @param areaName - 変更が発生したストレージ領域名
+ * @returns なし
  */
 const storageChangeListener = (
   changes: { [key: string]: chrome.storage.StorageChange },
@@ -531,7 +588,7 @@ onMounted(() => {
     chrome.storage.sync.get(null, (data: SyncData) => {
       environments.value = normalizeEnvironmentsForUI(data.environments);
 
-      nextTick(() => {
+      void nextTick(() => {
         initialSettingsStr = getUIStateString();
         isDirty.value = false;
         saveStatus.value = 'saved';
@@ -563,17 +620,19 @@ onUnmounted(() => {
 /**
  * 言語が変更された際のハンドラ関数
  * @param val - 変更後の言語種別
+ * @returns なし
  */
-const onLanguageChange = (val: Language) => {
+const onLanguageChange = (val: Language): void => {
   setLanguage(val);
-  chrome.storage.local.set({ language: val });
+  void chrome.storage.local.set({ language: val });
 };
 
 /**
  * 指定した環境を削除する関数
  * @param id - 削除対象の環境ID
+ * @returns なし
  */
-const deleteEnvironment = (id: string) => {
+const deleteEnvironment = (id: string): void => {
   confirm.require({
     message: t('deleteConfirmMessage'),
     header: t('deleteConfirmTitle'),
@@ -595,8 +654,9 @@ const deleteEnvironment = (id: string) => {
 
 /**
  * 新しいカスタム環境を追加する関数
+ * @returns なし
  */
-const addEnvironment = () => {
+const addEnvironment = (): void => {
   const defaultName = t("newEnvDefaultName");
   const id = `custom_${Date.now()}`;
   const newEnv: EnvironmentConfig = {
@@ -615,7 +675,7 @@ const addEnvironment = () => {
   };
   environments.value.push(newEnv);
   
-  nextTick(() => {
+  void nextTick(() => {
     window.scrollTo({
       top: document.body.scrollHeight,
       behavior: "smooth",
@@ -639,94 +699,111 @@ const executeSave = (isManual: boolean = false): boolean => {
   let hasDuplicate = false;
   let hasEmptyName = false;
   const seenPatterns = new Set<string>();
+  const nextErrors: Record<string, EnvValidationErrorState> = {};
 
-  // 1. 各項目のバリデーション用フラグを初期化
-  environments.value.forEach(env => {
-    (env as any)._invalidName = false;
-    (env as any)._invalidBadgeColor = false;
-    (env as any)._invalidBadgeOutlineColor = false;
-    (env as any)._invalidPageBadgeFontSize = false;
-    env.hostnames.forEach(hn => {
-      (hn as any)._invalid = false;
-    });
-  });
-
-  // 2. 正規表現を用いて設定値の正しさをチェック
+  // 1. 正規表現を用いて各環境の基本設定値の正しさをチェック
   const hexColorRegex = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
 
-  environments.value.forEach(env => {
+  // 2. 環境設定およびURLパターンの検証とデータの成形
+  const envsToSave = environments.value.map(env => {
+    const errState: EnvValidationErrorState = {
+      invalidName: false,
+      invalidBadgeColor: false,
+      invalidBadgeOutlineColor: false,
+      invalidPageBadgeFontSize: false,
+      invalidPatternIndices: [],
+    };
+
     // 環境名の空チェック
     const name = env.name.trim();
     if (name === "") {
-      (env as any)._invalidName = true;
+      errState.invalidName = true;
       hasEmptyName = true;
     }
-    
+
     // 文字色・フチ色のHEX形式チェック
     if (env.badgeColor && !hexColorRegex.test(env.badgeColor.trim())) {
-      (env as any)._invalidBadgeColor = true;
+      errState.invalidBadgeColor = true;
       hasInvalid = true;
     }
-    
+
     if (env.badgeOutlineColor && !hexColorRegex.test(env.badgeOutlineColor.trim())) {
-      (env as any)._invalidBadgeOutlineColor = true;
+      errState.invalidBadgeOutlineColor = true;
       hasInvalid = true;
     }
-    
+
     // フォントサイズの検証（空ではない、数値である、1〜500の範囲内）
     if (env.pageBadgeEnabled) {
-      if (typeof env.pageBadgeFontSize !== 'number' || isNaN(env.pageBadgeFontSize) || env.pageBadgeFontSize < 1 || env.pageBadgeFontSize > 500) {
-        (env as any)._invalidPageBadgeFontSize = true;
+      if (
+        typeof env.pageBadgeFontSize !== 'number' ||
+        isNaN(env.pageBadgeFontSize) ||
+        env.pageBadgeFontSize < 1 ||
+        env.pageBadgeFontSize > 500
+      ) {
+        errState.invalidPageBadgeFontSize = true;
         hasInvalid = true;
       }
     }
-  });
 
-  // 3. ホスト名パターンの検証とデータの成形
-  const envsToSave = environments.value.map(env => {
-    const validHostnames = env.hostnames.filter(hn => hn.value.trim() !== "");
-    const processedHostnames = validHostnames.map(hn => {
+    const processedHostnames: EnvironmentConfig['hostnames'] = [];
+
+    env.hostnames.forEach((hn, rowIndex) => {
       const rawValue = hn.value.trim();
+      if (rawValue === "") return;
+
       let patternKey = "";
       let processedValue = rawValue;
+      let isRowInvalid = false;
 
       if (hn.isRegex) {
         try {
           new RegExp(rawValue);
           patternKey = `regex:${rawValue}`;
         } catch {
-          (hn as any)._invalid = true;
+          isRowInvalid = true;
           hasInvalid = true;
         }
       } else {
-        const hostname = getHostname(rawValue);
-        if (!hostname) {
-          (hn as any)._invalid = true;
+        const normalized = normalizeUrlPattern(rawValue);
+        if (!normalized) {
+          isRowInvalid = true;
           hasInvalid = true;
         } else {
-          processedValue = hostname;
-          patternKey = `host:${hostname}`;
+          processedValue = normalized;
+          patternKey = `pattern:${normalized}`;
         }
       }
 
-      if (!hasInvalid && patternKey) {
+      if (!isRowInvalid && patternKey) {
         if (seenPatterns.has(patternKey)) {
-          (hn as any)._invalid = true;
+          isRowInvalid = true;
           hasDuplicate = true;
         } else {
           seenPatterns.add(patternKey);
         }
       }
 
-      return { value: processedValue, isRegex: hn.isRegex, enabled: hn.enabled !== false };
+      if (isRowInvalid) {
+        errState.invalidPatternIndices.push(rowIndex);
+      }
+
+      processedHostnames.push({
+        value: processedValue,
+        isRegex: hn.isRegex,
+        enabled: hn.enabled !== false,
+      });
     });
+
+    nextErrors[env.id] = errState;
 
     return {
       ...env,
       name: env.name.trim(),
-      hostnames: processedHostnames
+      hostnames: processedHostnames,
     };
   });
+
+  validationErrors.value = nextErrors;
 
   if (hasInvalid || hasDuplicate || hasEmptyName) {
     saveStatus.value = 'error';
@@ -762,7 +839,7 @@ const executeSave = (isManual: boolean = false): boolean => {
 <template>
   <div class="app-wrapper">
     <div class="container main-content">
-      <!-- Header Section -->
+      <!-- ヘッダー領域 -->
       <header class="header-section">
         <div class="logo-area">
           <img src="/icons/icon48.png" alt="EnvIcon Logo" class="logo-img">
@@ -797,8 +874,8 @@ const executeSave = (isManual: boolean = false): boolean => {
             severity="secondary" 
           />
           <TieredMenu ref="menu" id="overlay_menu" :model="menuItems" :popup="true">
-            <template #item="{ item, props, hasSubmenu }: any">
-              <a v-bind="props.action" class="flex items-center gap-2 w-full">
+            <template #item="{ item, props: itemProps, hasSubmenu }: HeaderMenuSlotProps">
+              <a v-bind="itemProps.action" class="flex items-center gap-2 w-full">
                 <span v-if="item.icon" :class="item.icon" class="p-menuitem-icon" style="margin-right: 0.5rem;"></span>
                 <span class="p-menuitem-text">{{ item.label }}</span>
                 <span v-if="item.isLangCheck" class="pi pi-check" style="font-size: 0.75rem; color: var(--p-primary-color); margin-left: 0.25rem;"></span>
@@ -825,7 +902,7 @@ const executeSave = (isManual: boolean = false): boolean => {
         />
       </div>
 
-      <!-- URL Checker -->
+      <!-- URLチェッカー -->
       <Accordion id="url-checker-card" class="mb-8">
         <AccordionPanel value="0">
           <AccordionHeader>
@@ -873,20 +950,21 @@ const executeSave = (isManual: boolean = false): boolean => {
         </AccordionPanel>
       </Accordion>
 
-      <!-- Environment Settings -->
+      <!-- 環境設定一覧 -->
       <section id="environmentsContainer" class="env-list">
         <EnvSection 
           v-for="(env, index) in environments" 
           :key="env.id"
           v-model:envConfig="environments[index]"
-          :checkerHostname="checkerResult?.hostname || null"
+          :matchedPatternIndex="checkerResult?.matchedEnvIndex === index ? checkerResult.matchedPatternIndex : null"
+          :validationError="validationErrors[env.id]"
           @delete="deleteEnvironment"
           @undo="undoChanges(env.id)"
         />
       </section>
     </div>
 
-    <!-- Sticky Footer -->
+    <!-- 下部固定フッター -->
     <footer class="sticky-footer">
       <div class="container footer-content">
         <Button 

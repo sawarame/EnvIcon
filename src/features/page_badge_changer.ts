@@ -37,6 +37,7 @@ const getPositionStyle = (
 
 /**
  * ページ内バッジをDOMから取り除く関数
+ * @returns なし
  */
 const removeBadge = (): void => {
   const badge = document.getElementById(BADGE_ID);
@@ -45,17 +46,18 @@ const removeBadge = (): void => {
 
 /**
  * 現在の設定と一時OFF状態に基づいてページ内バッジをDOMに挿入・更新または除去する関数
+ * @returns なし
  */
 const updatePageBadge = (): void => {
-  const hostname = window.location.hostname;
+  const currentUrl = window.location.href;
 
   // 一時OFF（全体OFFまたはサイト単位OFF）の場合はバッジを除去する
-  if (isTemporarilyDisabled(_sessionData, hostname)) {
+  if (isTemporarilyDisabled(_sessionData, currentUrl)) {
     removeBadge();
     return;
   }
 
-  const env = findMatchingEnv(_syncData.environments, hostname);
+  const env = findMatchingEnv(_syncData.environments, currentUrl);
 
   // 環境が見つからない、またはこの環境でページ内バッジが無効な場合はバッジを除去する
   if (!env || env.pageBadgeEnabled === false || !document.body) {
@@ -101,6 +103,7 @@ const updatePageBadge = (): void => {
  * ページ内バッジ表示機能を初期化する関数
  * @param syncData - 同期ストレージの設定データ
  * @param sessionData - セッションストレージの一時OFF設定データ
+ * @returns なし
  */
 export const initializePageBadgeFeature = (
   syncData: SyncData,
@@ -115,6 +118,7 @@ export const initializePageBadgeFeature = (
  * 設定変更や一時OFF切り替え時にページ内バッジを即座に再評価する関数
  * @param syncData - 最新の同期ストレージ設定データ
  * @param sessionData - 最新のセッションストレージ一時OFF設定データ
+ * @returns なし
  */
 export const refreshPageBadgeFeature = (
   syncData: SyncData,

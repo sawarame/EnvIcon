@@ -2,7 +2,6 @@
 import { ref } from 'vue';
 import { HostnamePattern } from '../../types';
 import { t } from '../i18n';
-import { getHostname } from '../utils';
 
 import Checkbox from 'primevue/checkbox';
 import InputText from 'primevue/inputtext';
@@ -10,8 +9,12 @@ import Button from 'primevue/button';
 import ToggleSwitch from 'primevue/toggleswitch';
 
 const props = defineProps<{
+  /** パターン設定オブジェクトの配列 */
   modelValue: HostnamePattern[];
-  checkerHostname?: string | null;
+  /** URLチェッカーで最終的に採用されたパターンの行インデックス（未採用時は null） */
+  matchedPatternIndex?: number | null;
+  /** バリデーションエラーが発生している行インデックスの配列 */
+  invalidIndices?: number[];
 }>();
 
 const emit = defineEmits<{
@@ -21,44 +24,69 @@ const emit = defineEmits<{
 const draggingIndex = ref<number | null>(null);
 const dragOverIndex = ref<number | null>(null);
 
-// --- ホスト名判定（URLチェッカープレビュー用） ---
-const isMatch = (pattern: HostnamePattern) => {
-  if (!props.checkerHostname || !pattern.value.trim() || pattern.enabled === false) return false;
-  if (pattern.isRegex) {
-    try {
-      return new RegExp(pattern.value).test(props.checkerHostname);
-    } catch {
-      return false;
-    }
-  }
-  return (getHostname(pattern.value) || pattern.value) === props.checkerHostname;
+/**
+ * 指定された行インデックスがURLチェッカーで採用された行かどうかを判定する関数
+ * @param index - 検査対象の行インデックス
+ * @returns 採用された行である場合は true、それ以外は false
+ */
+const isMatchedRow = (index: number): boolean => {
+  return typeof props.matchedPatternIndex === 'number' && props.matchedPatternIndex === index;
 };
 
-// --- ホスト名パターンの更新・追加・削除処理 ---
+/**
+ * 指定された行インデックスにバリデーションエラーがあるかどうかを判定する関数
+ * @param index - 検査対象の行インデックス
+ * @returns エラーがある場合は true、それ以外は false
+ */
+const isInvalidRow = (index: number): boolean => {
+  return Array.isArray(props.invalidIndices) && props.invalidIndices.includes(index);
+};
 
-// 特定のインデックスのパターン値（URL文字列など）を更新する
-const updatePath = (index: number, val: string) => {
-  const newList = [...props.modelValue];
-  newList[index].value = val;
+/**
+ * 特定のインデックスのパターン文字列を更新して親へ通知する関数
+ * @param index - 更新対象の行インデックス
+ * @param val - 新しい入力文字列
+ * @returns なし
+ */
+const updatePath = (index: number, val: string): void => {
+  const newList = props.modelValue.map((item: HostnamePattern, i: number) =>
+    i === index ? { ...item, value: val } : item
+  );
   emit('update:modelValue', newList);
 };
 
-// 正規表現（Regex）使用フラグのON/OFFを切り替える
-const updateRegex = (index: number, isRegex: boolean) => {
-  const newList = [...props.modelValue];
-  newList[index].isRegex = isRegex;
+/**
+ * 特定のインデックスの正規表現フラグを更新して親へ通知する関数
+ * @param index - 更新対象の行インデックス
+ * @param isRegex - 正規表現を使用する場合は true
+ * @returns なし
+ */
+const updateRegex = (index: number, isRegex: boolean): void => {
+  const newList = props.modelValue.map((item: HostnamePattern, i: number) =>
+    i === index ? { ...item, isRegex } : item
+  );
   emit('update:modelValue', newList);
 };
 
-// 有効/無効の切り替え
-const updateEnabled = (index: number, enabled: boolean) => {
-  const newList = [...props.modelValue];
-  newList[index].enabled = enabled;
+/**
+ * 特定のインデックスの有効・無効フラグを更新して親へ通知する関数
+ * @param index - 更新対象の行インデックス
+ * @param enabled - 有効にする場合は true
+ * @returns なし
+ */
+const updateEnabled = (index: number, enabled: boolean): void => {
+  const newList = props.modelValue.map((item: HostnamePattern, i: number) =>
+    i === index ? { ...item, enabled } : item
+  );
   emit('update:modelValue', newList);
 };
 
-// 最後の1行でなければ該当の入力行を削除する
-const removeInput = (index: number) => {
+/**
+ * 最後の1行でなければ該当の入力行を削除する関数
+ * @param index - 削除対象の行インデックス
+ * @returns なし
+ */
+const removeInput = (index: number): void => {
   if (props.modelValue.length > 1) {
     const newList = [...props.modelValue];
     newList.splice(index, 1);
@@ -66,42 +94,70 @@ const removeInput = (index: number) => {
   }
 };
 
-// 新たに空のホスト名パターンを追加する
-const addInput = () => {
+/**
+ * 新たに空のURLパターン行を末尾へ追加する関数
+ * @returns なし
+ */
+const addInput = (): void => {
   const newList = [...props.modelValue, { value: '', isRegex: false, enabled: true }];
   emit('update:modelValue', newList);
 };
 
-// --- ドラッグアンドドロップ (並び替え) 処理 ---
-// HTML5の標準API (draggable="true") を利用し、ライブラリを使わずにリストの並び替えを実現している
+// --- ドラッグアンドドロップ（並び替え）処理 ---
 
-// ドラッグ開始時（掴んだインデックスを保存し、見た目調整用のエフェクトを設定）
-const onDragStart = (event: DragEvent, index: number) => {
+/**
+ * ドラッグ開始時に対象行のインデックスを記録しエフェクトを設定する関数
+ * @param event - ドラッグイベント
+ * @param index - ドラッグ開始した行インデックス
+ * @returns なし
+ */
+const onDragStart = (event: DragEvent, index: number): void => {
   draggingIndex.value = index;
   if (event.dataTransfer) {
     event.dataTransfer.effectAllowed = 'move';
   }
 };
 
-const onDragEnter = (event: DragEvent, index: number) => {
+/**
+ * ドラッグ要素が別要素に入った際にハイライト対象を更新する関数
+ * @param event - ドラッグイベント
+ * @param index - 重なった行インデックス
+ * @returns なし
+ */
+const onDragEnter = (event: DragEvent, index: number): void => {
   event.preventDefault();
   if (draggingIndex.value !== null && draggingIndex.value !== index) {
     dragOverIndex.value = index;
   }
 };
 
-const onDragOver = (event: DragEvent, index: number) => {
+/**
+ * ドロップを許可するためデフォルト動作を抑制する関数
+ * @param event - ドラッグイベント
+ * @returns なし
+ */
+const onDragOver = (event: DragEvent): void => {
   event.preventDefault();
 };
 
-const onDragLeave = (event: DragEvent, index: number) => {
+/**
+ * ドラッグ要素が離れた際にハイライト状態を解除する関数
+ * @param index - 離れた行インデックス
+ * @returns なし
+ */
+const onDragLeave = (index: number): void => {
   if (dragOverIndex.value === index) {
     dragOverIndex.value = null;
   }
 };
 
-// ドラッグ中（要素が別要素上に重なったときの処理）
-const onDrop = (event: DragEvent, index: number) => {
+/**
+ * ドロップ時にパターン配列の順序を入れ替えて親へ通知する関数
+ * @param event - ドロップイベント
+ * @param index - ドロップ先の行インデックス
+ * @returns なし
+ */
+const onDrop = (event: DragEvent, index: number): void => {
   event.preventDefault();
   if (draggingIndex.value !== null && draggingIndex.value !== index) {
     const newList = [...props.modelValue];
@@ -113,8 +169,11 @@ const onDrop = (event: DragEvent, index: number) => {
   dragOverIndex.value = null;
 };
 
-// ドロップ完了時・ドラッグ終了時のリセット
-const onDragEnd = () => {
+/**
+ * ドラッグ終了時に内部状態をリセットする関数
+ * @returns なし
+ */
+const onDragEnd = (): void => {
   draggingIndex.value = null;
   dragOverIndex.value = null;
 };
@@ -135,53 +194,53 @@ const onDragEnd = () => {
         draggable="true"
         @dragstart="onDragStart($event, Number(index))"
         @dragenter="onDragEnter($event, Number(index))"
-        @dragover="onDragOver($event, Number(index))"
-        @dragleave="onDragLeave($event, Number(index))"
+        @dragover="onDragOver($event)"
+        @dragleave="onDragLeave(Number(index))"
         @drop="onDrop($event, Number(index))"
         @dragend="onDragEnd"
       >
         <div class="hostname-custom-input-group">
-          <!-- 1. Drag Handle -->
+          <!-- 1. ドラッグハンドル -->
           <div class="drag-handle-box">
             <i class="pi pi-bars"></i>
           </div>
 
-          <!-- 2. Enabled Toggle -->
+          <!-- 2. 有効/無効トグル -->
           <div class="enabled-addon-box">
             <ToggleSwitch
               :modelValue="pattern.enabled !== false"
               @update:modelValue="updateEnabled(Number(index), $event)"
-              aria-label="Toggle Hostname Pattern"
+              aria-label="Toggle URL Pattern"
             />
           </div>
 
-          <!-- 3. Regex Checkbox -->
+          <!-- 3. 正規表現チェックボックス -->
           <div class="regex-addon-box">
             <Checkbox
               :id="'regex-' + index"
-              v-model="pattern.isRegex"
+              :modelValue="pattern.isRegex"
               :binary="true"
-              @update:modelValue="updateRegex(Number(index), $event)"
+              @update:modelValue="updateRegex(Number(index), Boolean($event))"
             />
             <label :for="'regex-' + index">
               {{ t('regex') }}
             </label>
           </div>
 
-          <!-- 4. Hostname Input -->
+          <!-- 4. URL・ホスト名パターン入力欄 -->
           <InputText
             :value="pattern.value"
             @input="updatePath(Number(index), ($event.target as HTMLInputElement).value)"
             :placeholder="pattern.isRegex ? t('placeholderRegex') : t('placeholderHostname')"
             :class="{ 
-              'p-invalid': (pattern as any)._invalid,
-              'match-success': isMatch(pattern)
+              'p-invalid': isInvalidRow(Number(index)),
+              'match-success': isMatchedRow(Number(index))
             }"
             class="hostname-input-field"
             :disabled="pattern.enabled === false"
           />
 
-          <!-- 5. Remove Button -->
+          <!-- 5. 行削除ボタン -->
           <Button
             icon="pi pi-trash"
             severity="danger"
@@ -197,7 +256,7 @@ const onDragEnd = () => {
     <div class="add-button-wrapper">
       <Button
         icon="pi pi-plus-circle"
-        :label="t('addEnvironmentPattern') || 'Add Hostname Pattern'"
+        :label="t('addEnvironmentPattern')"
         severity="secondary"
         variant="text"
         @click="addInput"
@@ -222,10 +281,7 @@ const onDragEnd = () => {
   flex-direction: column;
 }
 
-/* 
-  入力を包むラッパーコンポーネント。
-  ボーダーと少しの影でグループとして見せる。
-*/
+/* 入力行を包むラッパー要素 */
 .hostname-row-wrapper {
   transition: background-color 0.2s;
   border-bottom: 1px solid var(--border-color);
@@ -247,33 +303,33 @@ const onDragEnd = () => {
   background-color: var(--item-bg);
 }
 
-/* Custom Input Group Style */
+/* カスタム入力グループのレイアウト */
 .hostname-custom-input-group {
   display: flex;
   align-items: stretch;
-  height: 2.75rem; /* 44px */
+  height: 2.75rem;
   background: var(--card-bg);
 }
 
-/* Common styling for all group items to ensure they stick together */
+/* 各要素間の境界線を統一する共通スタイル */
 .drag-handle-box,
 .enabled-addon-box,
 .regex-addon-box,
 .hostname-input-field,
 .remove-item-btn {
   border: none !important;
-  border-left: 1px solid var(--border-color) !important; /* Visible divider color */
+  border-left: 1px solid var(--border-color) !important;
   border-radius: 0 !important;
   margin: 0 !important;
   box-shadow: none !important;
 }
 
-/* Hide the very first left border to stay flush with container */
+/* 先頭要素の左境界線を非表示にして外枠と密着させる */
 .hostname-custom-input-group > :first-child {
   border-left: none !important;
 }
 
-/* 1. Drag Handle Box: ドラッグ操作用のハンドルエリア */
+/* 1. ドラッグ操作用のハンドルエリア */
 .drag-handle-box {
   width: 3rem;
   background-color: var(--item-bg);
@@ -284,7 +340,7 @@ const onDragEnd = () => {
 }
 .drag-handle-box:active { cursor: grabbing; }
 
-/* 2. Enabled Toggle Box */
+/* 2. 有効/無効トグルエリア */
 .enabled-addon-box {
   background-color: var(--item-bg);
   display: flex;
@@ -292,7 +348,7 @@ const onDragEnd = () => {
   padding: 0 0.75rem;
 }
 
-/* 3. Regex Addon Box */
+/* 3. 正規表現チェックボックスエリア */
 .regex-addon-box {
   background-color: var(--item-bg);
   display: flex;
@@ -301,7 +357,7 @@ const onDragEnd = () => {
   padding: 0 1rem;
 }
 
-/* 4. Input Field */
+/* 4. テキスト入力フィールド */
 .hostname-input-field {
   flex: 1;
   padding: 0 1rem !important;
@@ -314,14 +370,14 @@ const onDragEnd = () => {
   box-shadow: inset 0 0 0 1px var(--p-primary-color) !important;
 }
 
-/* Match Success State for Input */
+/* URLチェッカー採用行のハイライト表示 */
 .match-success {
   background-color: var(--success-bg) !important;
   color: var(--success-text) !important;
   font-weight: 600;
 }
 
-/* 5. Remove Button */
+/* 5. 削除ボタン */
 .remove-item-btn {
   width: 3rem;
   display: flex;
@@ -335,7 +391,7 @@ const onDragEnd = () => {
   background-color: var(--danger-bg-hover) !important;
 }
 
-/* Add Button at bottom */
+/* 下部のパターン追加ボタン領域 */
 .add-button-wrapper {
   background-color: var(--item-bg);
   border-top: 1px solid var(--border-color);
