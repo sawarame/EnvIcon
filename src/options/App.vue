@@ -4,9 +4,10 @@ import {
   SyncData,
   EnvironmentConfig,
   EnvValidationErrorState,
+  ValidationErrorItem,
 } from '../types';
 import { currentLanguage, setLanguage, t, Language } from './i18n';
-import { normalizeUrlPattern } from './utils';
+import { validateEnvironments } from './utils';
 import {
   createDefaultEnvironments,
   findMatchingDetail,
@@ -14,6 +15,7 @@ import {
   parseCheckerLocation,
 } from '../features/utils';
 import EnvSection from './components/EnvSection.vue';
+import SaveStatusIndicator from './components/SaveStatusIndicator.vue';
 import introJs from 'intro.js';
 import { useToast } from 'primevue/usetoast';
 import { useConfirm } from 'primevue/useconfirm';
@@ -332,6 +334,8 @@ const startTour = async (): Promise<void> => {
 const environments = ref<EnvironmentConfig[]>([]);
 /** 環境IDごとのバリデーションエラー状態マップ */
 const validationErrors = ref<Record<string, EnvValidationErrorState>>({});
+/** 不備理由ポップオーバー表示用の構造化バリデーションエラー項目リスト */
+const validationErrorItems = ref<ValidationErrorItem[]>([]);
 
 // --- URLチェッカー機能 ---
 // ユーザーが入力したURLがいずれかの環境（ポート・パス・正規表現）に一致するか詳細度優先ルールで即座に判定する
@@ -427,7 +431,15 @@ const onSettingsChange = (): void => {
 
   const currentUIState = getUIStateString();
   if (currentUIState === initialSettingsStr) {
+    if (autoSaveTimer) {
+      clearTimeout(autoSaveTimer);
+      autoSaveTimer = null;
+    }
+    const validationResult = validateEnvironments(environments.value);
+    validationErrors.value = validationResult.fieldErrorsByEnv;
+    validationErrorItems.value = validationResult.errorItems;
     isDirty.value = false;
+    saveStatus.value = validationResult.isValid ? 'saved' : 'error';
     return;
   }
 
@@ -465,6 +477,9 @@ const undoChanges = (envId: string): void => {
           environments.value[index].hostnames = [{ value: '', isRegex: false, enabled: true }];
         }
         delete validationErrors.value[envId];
+        validationErrorItems.value = validationErrorItems.value.filter(
+          (item) => item.envId !== envId
+        );
       }
     }
   } catch (err) {
@@ -539,6 +554,8 @@ const handleExternalStorageChange = async (
     environments.value = normalizeEnvironmentsForUI(syncData.environments);
     await nextTick();
     initialSettingsStr = getUIStateString();
+    validationErrors.value = {};
+    validationErrorItems.value = [];
     isDirty.value = false;
     saveStatus.value = "saved";
     isInitialized.value = true;
@@ -695,126 +712,23 @@ const executeSave = (isManual: boolean = false): boolean => {
     autoSaveTimer = null;
   }
 
-  let hasInvalid = false;
-  let hasDuplicate = false;
-  let hasEmptyName = false;
-  const seenPatterns = new Set<string>();
-  const nextErrors: Record<string, EnvValidationErrorState> = {};
+  const validationResult = validateEnvironments(environments.value);
+  validationErrors.value = validationResult.fieldErrorsByEnv;
+  validationErrorItems.value = validationResult.errorItems;
 
-  // 1. 正規表現を用いて各環境の基本設定値の正しさをチェック
-  const hexColorRegex = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
-
-  // 2. 環境設定およびURLパターンの検証とデータの成形
-  const envsToSave = environments.value.map(env => {
-    const errState: EnvValidationErrorState = {
-      invalidName: false,
-      invalidBadgeColor: false,
-      invalidBadgeOutlineColor: false,
-      invalidPageBadgeFontSize: false,
-      invalidPatternIndices: [],
-    };
-
-    // 環境名の空チェック
-    const name = env.name.trim();
-    if (name === "") {
-      errState.invalidName = true;
-      hasEmptyName = true;
-    }
-
-    // 文字色・フチ色のHEX形式チェック
-    if (env.badgeColor && !hexColorRegex.test(env.badgeColor.trim())) {
-      errState.invalidBadgeColor = true;
-      hasInvalid = true;
-    }
-
-    if (env.badgeOutlineColor && !hexColorRegex.test(env.badgeOutlineColor.trim())) {
-      errState.invalidBadgeOutlineColor = true;
-      hasInvalid = true;
-    }
-
-    // フォントサイズの検証（空ではない、数値である、1〜500の範囲内）
-    if (env.pageBadgeEnabled) {
-      if (
-        typeof env.pageBadgeFontSize !== 'number' ||
-        isNaN(env.pageBadgeFontSize) ||
-        env.pageBadgeFontSize < 1 ||
-        env.pageBadgeFontSize > 500
-      ) {
-        errState.invalidPageBadgeFontSize = true;
-        hasInvalid = true;
-      }
-    }
-
-    const processedHostnames: EnvironmentConfig['hostnames'] = [];
-
-    env.hostnames.forEach((hn, rowIndex) => {
-      const rawValue = hn.value.trim();
-      if (rawValue === "") return;
-
-      let patternKey = "";
-      let processedValue = rawValue;
-      let isRowInvalid = false;
-
-      if (hn.isRegex) {
-        try {
-          new RegExp(rawValue);
-          patternKey = `regex:${rawValue}`;
-        } catch {
-          isRowInvalid = true;
-          hasInvalid = true;
-        }
-      } else {
-        const normalized = normalizeUrlPattern(rawValue);
-        if (!normalized) {
-          isRowInvalid = true;
-          hasInvalid = true;
-        } else {
-          processedValue = normalized;
-          patternKey = `pattern:${normalized}`;
-        }
-      }
-
-      if (!isRowInvalid && patternKey) {
-        if (seenPatterns.has(patternKey)) {
-          isRowInvalid = true;
-          hasDuplicate = true;
-        } else {
-          seenPatterns.add(patternKey);
-        }
-      }
-
-      if (isRowInvalid) {
-        errState.invalidPatternIndices.push(rowIndex);
-      }
-
-      processedHostnames.push({
-        value: processedValue,
-        isRegex: hn.isRegex,
-        enabled: hn.enabled !== false,
-      });
-    });
-
-    nextErrors[env.id] = errState;
-
-    return {
-      ...env,
-      name: env.name.trim(),
-      hostnames: processedHostnames,
-    };
-  });
-
-  validationErrors.value = nextErrors;
-
-  if (hasInvalid || hasDuplicate || hasEmptyName) {
+  if (!validationResult.isValid) {
     saveStatus.value = 'error';
     if (isManual) {
-      showToast(hasDuplicate ? t("errorDuplicate") : t("errorInvalid"), true);
+      showToast(
+        validationResult.hasDuplicate ? t("errorDuplicate") : t("errorInvalid"),
+        true
+      );
     }
     return false;
   }
 
   const settings: SyncData = {
-    environments: envsToSave,
+    environments: validationResult.normalizedEnvironments,
   };
 
   isSelfSaving = true;
@@ -976,20 +890,10 @@ const executeSave = (isManual: boolean = false): boolean => {
           size="large"
           class="add-btn"
         />
-        <div id="save-status" class="save-status-container ms-auto flex items-center gap-2">
-          <template v-if="saveStatus === 'saving'">
-            <i class="pi pi-spin pi-spinner text-secondary"></i>
-            <span class="status-text text-secondary">{{ t('saving') }}</span>
-          </template>
-          <template v-else-if="saveStatus === 'error'">
-            <i class="pi pi-exclamation-triangle text-amber-500"></i>
-            <span class="status-text text-amber-500 font-medium">{{ t('saveError') }}</span>
-          </template>
-          <template v-else>
-            <i class="pi pi-check text-green-500"></i>
-            <span class="status-text text-green-500">{{ t('allSaved') }}</span>
-          </template>
-        </div>
+        <SaveStatusIndicator
+          :saveStatus="saveStatus"
+          :errorItems="validationErrorItems"
+        />
       </div>
     </footer>
 

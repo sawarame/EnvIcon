@@ -118,6 +118,68 @@ export interface EnvValidationErrorState {
 }
 
 /**
+ * 自動保存を保留させる入力不備の種別区分を表す共用体型
+ */
+export type ValidationErrorKind =
+  | 'empty_name'
+  | 'invalid_badge_color'
+  | 'invalid_badge_outline_color'
+  | 'invalid_font_size'
+  | 'invalid_url_pattern'
+  | 'invalid_regex_pattern'
+  | 'duplicate_pattern';
+
+/**
+ * オプション設定画面における個別の保存検証エラー項目を表す言語非依存データ構造
+ */
+export interface ValidationErrorItem {
+  /** 不備が発生している環境の識別子 ("prod" | "stg" | "dev" | "custom_*") */
+  envId: string;
+  /** トリム済みのカスタム環境名（未入力時は空文字） */
+  envCustomName: string;
+  /** 不備理由の種別区分 */
+  kind: ValidationErrorKind;
+  /** パターン行の不備・重複時における該当行のトリム済み入力文字列 */
+  patternValue?: string;
+  /** パターン行の不備・重複時における hostnames 配列内の0始まりインデックス */
+  patternRowIndex?: number;
+  /** 重複エラー時、同一環境内の先行行との重複である場合は true */
+  isSameEnvDuplicate?: boolean;
+  /** 異環境間での重複エラー時、重複元（初出側）環境の識別子 */
+  duplicateOfEnvId?: string;
+  /** 異環境間での重複エラー時、重複元環境のトリム済みカスタム環境名 */
+  duplicateOfCustomName?: string;
+}
+
+/**
+ * 環境設定配列の一括バリデーション結果を表すインターフェース
+ */
+export interface EnvironmentsValidationResult {
+  /** 全環境を通じて不備が0件であれば true */
+  isValid: boolean;
+  /** パターン重複エラーが1件以上含まれるかどうか */
+  hasDuplicate: boolean;
+  /** 保存可能な形式に正規化された環境設定配列 */
+  normalizedEnvironments: EnvironmentConfig[];
+  /** 環境IDをキーとする入力欄別の赤枠エラー強調状態マップ */
+  fieldErrorsByEnv: Record<string, EnvValidationErrorState>;
+  /** 画面上の環境順・項目順に整列された全不備項目の配列 */
+  errorItems: ValidationErrorItem[];
+}
+
+/**
+ * 不備理由ポップオーバー描画用に環境単位でグループ化・ローカライズされたエラー情報
+ */
+export interface LocalizedValidationErrorGroup {
+  /** 環境識別子 */
+  envId: string;
+  /** 現在の表示言語で解決された環境表示名（未入力時は代替ラベル） */
+  envDisplayName: string;
+  /** 当該環境に属するローカライズ済みの不備理由メッセージ配列 */
+  reasons: string[];
+}
+
+/**
  * chrome.storage.sync に保存されるデータ構造
  */
 export interface SyncData {
