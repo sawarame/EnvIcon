@@ -102,6 +102,16 @@ export const i18nConfig = {
     popupRegexPatternLabel: "Pattern:",
     optionsGlobalPausedNotice: "EnvIcon is currently paused on all sites (resets when browser closes).",
     optionsResumeNow: "Resume Now",
+    saveErrorDetailsTitle: "Reasons changes cannot be saved",
+    unnamedEnvironment: "(Unnamed Environment)",
+    validationEmptyName: "Environment name is required",
+    validationInvalidBadgeColor: 'Badge "Color" is not a valid hex color code (e.g. #ff0000)',
+    validationInvalidBadgeOutlineColor: 'Badge "Outline" is not a valid hex color code (e.g. #ffffff)',
+    validationInvalidFontSize: 'Page badge "Font Size" is out of valid range',
+    validationInvalidUrlPattern: 'URL pattern "{pattern}" is invalid',
+    validationInvalidRegexPattern: 'Regex pattern "{pattern}" has a syntax error',
+    validationDuplicateSameEnv: 'Pattern "{pattern}" is duplicated within the same environment',
+    validationDuplicateOtherEnv: 'Pattern "{pattern}" duplicates a pattern in "{targetEnv}"',
   },
   ja: {
     enableFavicon: "Favicon書き換えを有効にする",
@@ -201,6 +211,16 @@ export const i18nConfig = {
     popupRegexPatternLabel: "一致パターン:",
     optionsGlobalPausedNotice: "現在、すべてのサイトで一時OFFが有効になっています（ブラウザ再起動で自動復帰）。",
     optionsResumeNow: "今すぐONに戻す",
+    saveErrorDetailsTitle: "保存できない理由",
+    unnamedEnvironment: "（名称未設定の環境）",
+    validationEmptyName: "環境名が入力されていません",
+    validationInvalidBadgeColor: "バッジの「色」が正しいカラーコード形式（例: #ff0000）ではありません",
+    validationInvalidBadgeOutlineColor: "バッジの「フチ色」が正しいカラーコード形式（例: #ffffff）ではありません",
+    validationInvalidFontSize: "ページ内バッジの「文字サイズ」が有効範囲外です",
+    validationInvalidUrlPattern: "URLパターン「{pattern}」の形式が無効です",
+    validationInvalidRegexPattern: "正規表現パターン「{pattern}」に構文エラーがあります",
+    validationDuplicateSameEnv: "パターン「{pattern}」が同じ環境内で重複しています",
+    validationDuplicateOtherEnv: "パターン「{pattern}」が「{targetEnv}」と重複しています",
   },
 };
 
@@ -223,9 +243,23 @@ export const setLanguage = (lang: Language): void => {
 };
 
 /**
- * 指定されたキーに対応する翻訳テキストを取得する関数
+ * 指定されたキーに対応する翻訳テキストを取得し、必要に応じてプレースホルダーを置換する関数
  * @param key - 翻訳キー
+ * @param params - テンプレート内の {key} を置換するパラメータマップ（省略可）
  * @returns 現在の言語に対応する翻訳済み文字列
  */
-export const t = (key: TranslationKey): string =>
-  i18nConfig[currentLanguage.value][key] || key;
+export const t = (
+  key: TranslationKey,
+  params?: Record<string, string | number>
+): string => {
+  const template = i18nConfig[currentLanguage.value][key] || key;
+  if (!params) {
+    return template;
+  }
+  // ユーザー入力値に '$' 等の特殊文字が含まれていても安全にリテラル置換するため関数コールバックを使用する
+  return template.replace(/\{(\w+)\}/g, (match, tokenKey: string) =>
+    Object.prototype.hasOwnProperty.call(params, tokenKey)
+      ? String(params[tokenKey])
+      : match
+  );
+};
