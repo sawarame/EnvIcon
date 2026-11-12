@@ -16,7 +16,9 @@ import {
 } from '../features/utils';
 import EnvSection from './components/EnvSection.vue';
 import SaveStatusIndicator from './components/SaveStatusIndicator.vue';
-import introJs from 'intro.js';
+import { useTheme } from './composables/useTheme';
+import { useTour } from './composables/useTour';
+import { useSettingsTransfer } from './composables/useSettingsTransfer';
 import { useToast } from 'primevue/usetoast';
 import { useConfirm } from 'primevue/useconfirm';
 
@@ -57,10 +59,30 @@ interface HeaderMenuSlotProps {
 const toast = useToast();
 const confirm = useConfirm();
 
-const menu = ref<{ toggle: (event: Event) => void } | null>(null);
-const fileInput = ref<HTMLInputElement | null>(null);
+/**
+ * トースト通知を表示する関数
+ * @param message - 表示するメッセージ文字列
+ * @param isError - エラー表示かどうかを示すフラグ（デフォルト: false）
+ * @returns なし
+ */
+const showToast = (message: string, isError: boolean = false): void => {
+  toast.add({
+    severity: isError ? 'error' : 'success',
+    summary: isError ? t('errorTitle') || 'Error' : t('successTitle') || 'Success',
+    detail: message,
+    life: 3000
+  });
+};
 
-const isDarkMode = ref(false);
+const menu = ref<{ toggle: (event: Event) => void } | null>(null);
+const environments = ref<EnvironmentConfig[]>([]);
+
+// Composables の初期化
+const { isDarkMode, initTheme, toggleDarkMode } = useTheme();
+const { startTour, exitTour } = useTour();
+const { fileInput, exportSettings, handleImportFile, triggerFileInput } =
+  useSettingsTransfer(showToast);
+
 /** ポップアップ側で全体一時OFFが有効になっているかどうか */
 const isGlobalPaused = ref(false);
 
@@ -86,26 +108,25 @@ const handleKeydown = (event: KeyboardEvent): void => {
 };
 
 /**
- * ダークモードとライトモードの表示テーマを切り替える関数
- * @returns なし
- */
-const toggleDarkMode = (): void => {
-  isDarkMode.value = !isDarkMode.value;
-  if (isDarkMode.value) {
-    document.documentElement.classList.add('my-app-dark');
-  } else {
-    document.documentElement.classList.remove('my-app-dark');
-  }
-  void chrome.storage.local.set({ darkMode: isDarkMode.value });
-};
-
-/**
  * ヘッダーのアクションメニューの表示・非表示を切り替える関数
  * @param event - イベントオブジェクト
  * @returns なし
  */
 const toggleMenu = (event: Event): void => {
   menu.value?.toggle(event);
+};
+
+/**
+ * 設定JSONファイルのインポート処理を実行する関数
+ * @param event - ファイル入力イベントオブジェクト
+ * @returns なし
+ */
+const onImportSettings = (event: Event): void => {
+  handleImportFile(event, (importedEnvs) => {
+    environments.value = normalizeEnvironmentsForUI(importedEnvs);
+    void executeSave(true);
+    showToast(t('importSuccess'), false);
+  });
 };
 
 /**
@@ -131,207 +152,15 @@ const menuItems = computed<HeaderMenuItem[]>(() => [
   {
     label: t('exportSettings'),
     icon: 'pi pi-upload',
-    command: () => handleExport()
+    command: () => exportSettings(environments.value)
   },
   {
     label: t('importSettings'),
     icon: 'pi pi-download',
-    command: () => {
-      fileInput.value?.click();
-    }
+    command: () => triggerFileInput()
   }
 ]);
 
-/**
- * 数値を2桁ゼロ埋めの文字列へ変換する補助関数
- * @param n - 変換対象の数値
- * @returns 2桁にゼロ埋めされた数値文字列
- */
-const padTwoDigits = (n: number): string => n.toString().padStart(2, '0');
-
-/**
- * 現在の環境設定をJSONファイルとしてダウンロード（エクスポート）する関数
- * @returns なし
- */
-const handleExport = (): void => {
-  const dataToExport = { environments: environments.value };
-  const dataStr = JSON.stringify(dataToExport, null, 2);
-  const blob = new Blob([dataStr], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  
-  const now = new Date();
-  const yyyy = now.getFullYear();
-  const mm = padTwoDigits(now.getMonth() + 1);
-  const dd = padTwoDigits(now.getDate());
-  const hh = padTwoDigits(now.getHours());
-  const min = padTwoDigits(now.getMinutes());
-  const ss = padTwoDigits(now.getSeconds());
-  const filename = `EnvIcon_${yyyy}${mm}${dd}${hh}${min}${ss}.json`;
-
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-};
-
-/**
- * 選択されたJSONファイルから設定を読み込みインポートする関数
- * @param event - ファイル入力イベントオブジェクト
- * @returns なし
- */
-const handleImportFile = (event: Event): void => {
-  const target = event.target as HTMLInputElement;
-  const file = target.files?.[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    try {
-      const content = typeof e.target?.result === 'string' ? e.target.result : '';
-      const parsed: unknown = JSON.parse(content);
-      
-      if (
-        typeof parsed !== 'object' ||
-        parsed === null ||
-        !('environments' in parsed) ||
-        !Array.isArray((parsed as { environments: unknown }).environments)
-      ) {
-        throw new Error("Invalid format");
-      }
-      const importedEnvs = (parsed as { environments: EnvironmentConfig[] }).environments;
-      
-      confirm.require({
-        message: t('importConfirmMessage'),
-        header: t('importConfirmTitle'),
-        icon: 'pi pi-exclamation-triangle',
-        rejectProps: {
-          label: t('confirmNo'),
-          severity: 'secondary',
-          outlined: true
-        },
-        acceptProps: {
-          label: t('confirmImport'),
-          severity: 'primary'
-        },
-        accept: () => {
-          environments.value = normalizeEnvironmentsForUI(importedEnvs);
-          void executeSave(true);
-          showToast(t('importSuccess'), false);
-        }
-      });
-    } catch {
-      showToast(t('importError'), true);
-    } finally {
-      target.value = '';
-    }
-  };
-  reader.readAsText(file);
-};
-
-// --- チュートリアルに関する関数 ---
-/** 現在実行中のチュートリアルツアーインスタンス（二重起動防止・クリーンアップ用） */
-let activeTour: ReturnType<typeof introJs.tour> | null = null;
-
-/**
- * チュートリアルツアー（Intro.js）を開始する非同期関数
- * @returns ツアー開始処理の完了を表す Promise
- */
-const startTour = async (): Promise<void> => {
-  // すでにツアーが実行中または起動処理中の場合は二重起動を防止する
-  if (activeTour !== null) {
-    return;
-  }
-
-  // トリガーとなったボタン等にフォーカスが残っているとEnterキー押下時に再発火するおそれがあるためフォーカスを外す
-  if (document.activeElement instanceof HTMLElement) {
-    document.activeElement.blur();
-  }
-
-  const intro = introJs.tour();
-  activeTour = intro;
-
-  intro.setOptions({
-    steps: [
-      {
-        title: t('tourWelcomeTitle'),
-        intro: t('tourWelcomeMsg'),
-      },
-      {
-        element: '#env-section-prod .smart-settings-container',
-        title: t('tourBadgeTitle'),
-        intro: t('tourBadgeMsg'),
-        position: 'bottom'
-      },
-      {
-        element: '#env-section-prod .hostname-custom-input-group',
-        title: t('tourHostnameTitle'),
-        intro: t('tourHostnameMsg'),
-        position: 'bottom'
-      },
-      {
-        element: '#url-checker-card',
-        title: t('tourCheckerTitle'),
-        intro: t('tourCheckerMsg'),
-      },
-      {
-        element: '#add-env-button',
-        title: t('tourAddEnvTitle'),
-        intro: t('tourAddEnvMsg'),
-        position: 'top'
-      },
-      {
-        element: '#save-status',
-        title: t('tourSaveTitle'),
-        intro: t('tourSaveMsg'),
-        position: 'top'
-      },
-      {
-        title: t('tourFinalTitle'),
-        intro: t('tourFinalMsg'),
-      },
-    ],
-    nextLabel: t('tourNext'),
-    prevLabel: t('tourPrev'),
-    doneLabel: t('tourFinish'),
-    hidePrev: true,
-  });
-
-  intro.onComplete(() => {
-    void chrome.storage.local.set({ tutorialCompleted: true });
-  });
-
-  intro.onExit(() => {
-    if (activeTour === intro) {
-      activeTour = null;
-    }
-  });
-
-  // フッターのボタン・ステータス（position: fixedな要素）の場合、intro.jsがスクロール位置を誤判定して
-  // 下に少しずつスクロールし続ける不具合を防ぐため、スクロールを無効化する。
-  // なお、最終ステップでEnterキー等を押して完了する際、Intro.js内部で範囲外のステップに対して
-  // targetElement が undefined で呼び出されるため、オプショナルチェイニングで安全に判定する。
-  intro.onBeforeChange((targetElement: HTMLElement | undefined) => {
-    if (targetElement?.id === 'add-env-button' || targetElement?.id === 'save-status') {
-      intro.setOptions({ scrollToElement: false });
-    } else {
-      intro.setOptions({ scrollToElement: true });
-    }
-    return true;
-  });
-
-  try {
-    await intro.start();
-  } finally {
-    if (!intro.hasStarted() && activeTour === intro) {
-      activeTour = null;
-    }
-  }
-};
-
-const environments = ref<EnvironmentConfig[]>([]);
 /** 環境IDごとのバリデーションエラー状態マップ */
 const validationErrors = ref<Record<string, EnvValidationErrorState>>({});
 /** 不備理由ポップオーバー表示用の構造化バリデーションエラー項目リスト */
@@ -364,20 +193,6 @@ const checkerResult = computed(() => {
 });
 
 
-/**
- * トースト通知を表示する関数
- * @param message - 表示するメッセージ文字列
- * @param isError - エラー表示かどうかを示すフラグ（デフォルト: false）
- * @returns なし
- */
-const showToast = (message: string, isError: boolean = false): void => {
-  toast.add({
-    severity: isError ? 'error' : 'success',
-    summary: isError ? t('errorTitle') || 'Error' : t('successTitle') || 'Success',
-    detail: message,
-    life: 3000
-  });
-};
 
 // --- 状態管理・自動保存 ---
 /** 自動保存のステータス型 */
@@ -585,14 +400,7 @@ onMounted(async () => {
   }
   setLanguage(lang);
 
-  if (typeof localData.darkMode === 'boolean') {
-    isDarkMode.value = localData.darkMode;
-  } else {
-    isDarkMode.value = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  }
-  if (isDarkMode.value) {
-    document.documentElement.classList.add('my-app-dark');
-  }
+  initTheme(localData.darkMode);
 
   environments.value = normalizeEnvironmentsForUI(syncData.environments);
 
@@ -610,10 +418,7 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
-  if (activeTour?.hasStarted()) {
-    void activeTour.exit(true);
-    activeTour = null;
-  }
+  exitTour();
   chrome.storage.onChanged.removeListener(storageChangeListener);
   window.removeEventListener('keydown', handleKeydown);
   window.removeEventListener('beforeunload', handleBeforeUnload);
@@ -785,7 +590,7 @@ const executeSave = async (isManual: boolean = false): Promise<boolean> => {
               </a>
             </template>
           </TieredMenu>
-          <input type="file" ref="fileInput" accept=".json" style="display: none" @change="handleImportFile" />
+          <input type="file" ref="fileInput" accept=".json" style="display: none" @change="onImportSettings" />
         </div>
       </header>
 
