@@ -16,19 +16,25 @@ const HEX_COLOR_REGEX =
   /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
 
 /**
- * 環境IDとカスタム環境名から現在の表示言語に応じた環境表示名を解決する関数
- * @param envId - 環境識別子 ("prod" | "stg" | "dev" | "custom_*")
- * @param envCustomName - トリム済みのカスタム環境名（空文字の場合は名称未設定扱い）
+ * 環境IDとカスタム環境名（または環境設定オブジェクト）から現在の表示言語に応じた環境表示名を解決する関数
+ * @param envOrId - 対象の環境設定オブジェクト、または環境識別子 ("prod" | "stg" | "dev" | "custom_*")
+ * @param customName - トリム済みのカスタム環境名（envOrId がオブジェクトの場合は省略可能）
  * @returns ローカライズされた環境表示名（未入力時は代替ラベル）
  */
 export const resolveEnvDisplayName = (
-  envId: string,
-  envCustomName: string
+  envOrId: EnvironmentConfig | string,
+  customName?: string
 ): string => {
+  const envId = typeof envOrId === "string" ? envOrId : envOrId.id;
+  const name =
+    typeof envOrId === "string"
+      ? (customName ?? "")
+      : (customName ?? envOrId.name ?? "");
+
   if (envId === "prod") return t("ProductionName");
   if (envId === "stg") return t("StagingName");
   if (envId === "dev") return t("DevelopmentName");
-  const trimmed = envCustomName.trim();
+  const trimmed = name.trim();
   return trimmed !== "" ? trimmed : t("unnamedEnvironment");
 };
 
@@ -305,46 +311,4 @@ export const validateEnvironments = (
     fieldErrorsByEnv,
     errorItems,
   };
-};
-
-/**
- * 入力された文字列から小文字のホスト名部分を抽出・バリデーションする関数
- * @param input - 入力されたURLまたはホスト名文字列
- * @returns 有効な小文字ホスト名、無効な入力の場合は null
- */
-export const getHostname = (input: string): string | null => {
-  const parsed = parseUrlPattern(input);
-  return parsed ? parsed.hostname : null;
-};
-
-/** トースト表示のタイマーID */
-let toastTimeoutId: ReturnType<typeof setTimeout> | null = null;
-
-/**
- * 保存完了やエラーなどのステータスをトースト要素へ表示する関数
- * @param message - 表示するステータスメッセージ
- * @param color - 表示色種別（"red" または "danger" でエラー色）
- * @param elements - トースト表示に使用するDOM要素群
- * @returns なし
- */
-export const showStatus = (
-  message: string,
-  color: string,
-  elements: { toast: HTMLDivElement; toastMessage: HTMLSpanElement }
-): void => {
-  if (!elements.toast || !elements.toastMessage) return;
-  elements.toastMessage.textContent = message;
-  if (color === "red" || color === "danger") {
-    elements.toast.classList.remove("text-bg-success");
-    elements.toast.classList.add("text-bg-danger");
-  } else {
-    elements.toast.classList.remove("text-bg-danger");
-    elements.toast.classList.add("text-bg-success");
-  }
-  elements.toast.classList.add("show");
-  if (toastTimeoutId) clearTimeout(toastTimeoutId);
-  toastTimeoutId = setTimeout(
-    () => elements.toast.classList.remove("show"),
-    3000
-  );
 };

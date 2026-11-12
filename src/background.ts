@@ -1,3 +1,4 @@
+import { drawBadgeText } from "./features/canvas_utils";
 import {
   createDefaultEnvironments,
   findMatchingEnv,
@@ -115,18 +116,14 @@ const updateActionIcon = async (
       applyGrayscaleMuteFilter(ctx, size);
 
       // 一時OFF中であることが一目で判別できるよう OFF インジケーターを重ねる
-      const fontSize = 12;
-      ctx.font = `bold ${fontSize}px sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "alphabetic";
-
-      ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = 3;
-      ctx.lineJoin = "round";
-      ctx.strokeText("OFF", size / 2, size - 2);
-
-      ctx.fillStyle = "#475569";
-      ctx.fillText("OFF", size / 2, size - 2);
+      drawBadgeText(ctx, {
+        text: "OFF",
+        color: "#475569",
+        outlineColor: "#ffffff",
+        canvasSize: size,
+        fontSize: 12,
+        lineWidth: 3,
+      });
 
       const imageData = ctx.getImageData(0, 0, size, size);
       await chrome.action.setIcon({
@@ -173,18 +170,14 @@ const updateActionIcon = async (
     const color = env.badgeColor || "#888888";
     const outlineColor = env.badgeOutlineColor || "#ffffff";
 
-    const fontSize = 14;
-    ctx.font = `bold ${fontSize}px sans-serif`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "alphabetic";
-
-    ctx.strokeStyle = outlineColor;
-    ctx.lineWidth = 3;
-    ctx.lineJoin = "round";
-    ctx.strokeText(text, size / 2, size - 2);
-
-    ctx.fillStyle = color;
-    ctx.fillText(text, size / 2, size - 2);
+    drawBadgeText(ctx, {
+      text,
+      color,
+      outlineColor,
+      canvasSize: size,
+      fontSize: 14,
+      lineWidth: 3,
+    });
 
     const imageData = ctx.getImageData(0, 0, size, size);
     await chrome.action.setIcon({

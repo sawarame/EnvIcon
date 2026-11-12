@@ -7,7 +7,7 @@ import {
   ValidationErrorItem,
 } from '../types';
 import { currentLanguage, setLanguage, t, Language } from './i18n';
-import { validateEnvironments } from './utils';
+import { resolveEnvDisplayName, validateEnvironments } from './utils';
 import {
   createDefaultEnvironments,
   findMatchingDetail,
@@ -363,17 +363,6 @@ const checkerResult = computed(() => {
   };
 });
 
-/**
- * 環境設定オブジェクトからローカライズされた環境名を取得する関数
- * @param env - 環境設定オブジェクト
- * @returns ローカライズされた環境名
- */
-const getEnvName = (env: EnvironmentConfig): string => {
-  if (env.id === 'prod') return t('ProductionName');
-  if (env.id === 'stg') return t('StagingName');
-  if (env.id === 'dev') return t('DevelopmentName');
-  return env.name;
-};
 
 /**
  * トースト通知を表示する関数
@@ -848,7 +837,7 @@ const executeSave = (isManual: boolean = false): boolean => {
                       class="env-badge-tag" 
                       :style="{ backgroundColor: checkerResult.env?.badgeColor, color: checkerResult.env?.badgeOutlineColor, borderColor: checkerResult.env?.badgeOutlineColor }"
                     >
-                      {{ checkerResult.env ? getEnvName(checkerResult.env) : '' }}
+                      {{ checkerResult.env ? resolveEnvDisplayName(checkerResult.env) : '' }}
                     </span> 
                   </template>
                   <template v-else>

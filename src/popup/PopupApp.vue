@@ -4,7 +4,7 @@ import Button from "primevue/button";
 import ToggleSwitch from "primevue/toggleswitch";
 import { EnvironmentConfig, SyncData, TargetLocation } from "../types";
 import { Language, setLanguage, t } from "../options/i18n";
-import { normalizeUrlPattern } from "../options/utils";
+import { normalizeUrlPattern, resolveEnvDisplayName } from "../options/utils";
 import {
   createDefaultEnvironments,
   findMatchingDetail,
@@ -73,17 +73,6 @@ const isPatternLocked = computed<boolean>(() =>
   Boolean(matchDetail.value && !matchDetail.value.isExactHostPortMatch)
 );
 
-/**
- * 環境設定オブジェクトから現在の表示言語に応じた環境名を取得する関数
- * @param env - 対象の環境設定オブジェクト
- * @returns ローカライズされた環境名
- */
-const getEnvDisplayName = (env: EnvironmentConfig): string => {
-  if (env.id === "prod") return t("ProductionName");
-  if (env.id === "stg") return t("StagingName");
-  if (env.id === "dev") return t("DevelopmentName");
-  return env.name;
-};
 
 /**
  * 環境設定オブジェクトからバッジ表示用テキスト（最大4文字）を取得する関数
@@ -403,7 +392,7 @@ onUnmounted(() => {
           <div v-if="isPatternLocked && matchDetail" class="regex-lock-box">
             <div class="regex-lock-header">
               <i class="pi pi-lock"></i>
-              <span>{{ getEnvDisplayName(matchDetail.env) }}</span>
+              <span>{{ resolveEnvDisplayName(matchDetail.env) }}</span>
               <span
                 class="mini-env-badge ms-auto"
                 :style="{
@@ -456,7 +445,7 @@ onUnmounted(() => {
                 >
                   {{ getBadgeLabel(env) }}
                 </span>
-                <span class="env-btn-name">{{ getEnvDisplayName(env) }}</span>
+                <span class="env-btn-name">{{ resolveEnvDisplayName(env) }}</span>
                 <i
                   v-if="matchedEnv?.id === env.id"
                   class="pi pi-check-circle active-check-icon"

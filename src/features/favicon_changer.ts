@@ -4,6 +4,7 @@ import {
   SyncData,
   TabInfoResponse,
 } from "../types";
+import { drawBadgeText } from "./canvas_utils";
 import { findMatchingEnv, isTemporarilyDisabled } from "./utils";
 
 let _syncData: SyncData = {};
@@ -307,18 +308,12 @@ const updateFavicon = async (): Promise<void> => {
       }
 
       const { text, color, outlineColor } = match;
-      const fontSize = Math.max(Math.round(size / 2.5), 12);
-      ctx.font = `bold ${fontSize}px sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "alphabetic";
-
-      ctx.strokeStyle = outlineColor;
-      ctx.lineWidth = Math.max(size / 10, 2);
-      ctx.lineJoin = "round";
-      ctx.strokeText(text, size / 2, size - 2);
-
-      ctx.fillStyle = color;
-      ctx.fillText(text, size / 2, size - 2);
+      drawBadgeText(ctx, {
+        text,
+        color,
+        outlineColor,
+        canvasSize: size,
+      });
 
       const newHref = canvas.toDataURL("image/png");
       _lastGeneratedFaviconHref = newHref;
