@@ -1,5 +1,6 @@
 import type { SessionData, SyncData } from "../types";
-import { findMatchingEnv, isTemporarilyDisabled } from "./utils";
+import { findMatchingEnv } from "./matcher";
+import { isTemporarilyDisabled } from "./session";
 
 // 直前にコンソール出力した環境の識別子（同一環境内遷移での重複出力防止用）
 let _lastLoggedEnvId: string | null = null;

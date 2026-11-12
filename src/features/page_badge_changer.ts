@@ -1,5 +1,6 @@
 import { PageBadgePosition, SessionData, SyncData } from "../types";
-import { findMatchingEnv, isTemporarilyDisabled } from "./utils";
+import { findMatchingEnv } from "./matcher";
+import { isTemporarilyDisabled } from "./session";
 
 let _syncData: SyncData = {};
 let _sessionData: SessionData = {};

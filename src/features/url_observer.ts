@@ -1,5 +1,5 @@
 import type { TabUrlChangedMessage } from "../types";
-import { parseTargetLocation } from "./utils";
+import { parseTargetLocation } from "./url_parser";
 
 let _isInitialized = false;
 let _lastLocationKey = "";

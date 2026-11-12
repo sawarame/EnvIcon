@@ -81,7 +81,7 @@ const resumeGlobalNow = async (): Promise<void> => {
 const handleKeydown = (event: KeyboardEvent): void => {
   if ((event.ctrlKey || event.metaKey) && event.key === 's') {
     event.preventDefault();
-    executeSave(true);
+    void executeSave(true);
   }
 };
 
@@ -218,7 +218,7 @@ const handleImportFile = (event: Event): void => {
         },
         accept: () => {
           environments.value = normalizeEnvironmentsForUI(importedEnvs);
-          executeSave(true);
+          void executeSave(true);
           showToast(t('importSuccess'), false);
         }
       });
@@ -441,7 +441,7 @@ const onSettingsChange = (): void => {
 
   // 入力途中の連続変更に対応するため、500ms待ってから保存を実行
   autoSaveTimer = setTimeout(() => {
-    executeSave(false);
+    void executeSave(false);
   }, 500);
 };
 
@@ -484,7 +484,7 @@ watch(environments, onSettingsChange, { deep: true });
  */
 const handleBeforeUnload = (): void => {
   if (autoSaveTimer) {
-    executeSave(false);
+    void executeSave(false);
   }
 };
 
@@ -564,50 +564,49 @@ const storageChangeListener = (
   void handleExternalStorageChange(changes, areaName);
 };
 
-onMounted(() => {
-  void getSessionData().then((sessionData) => {
-    isGlobalPaused.value = Boolean(sessionData.globalDisabled);
-  });
+onMounted(async () => {
   chrome.storage.onChanged.addListener(storageChangeListener);
+  window.addEventListener('keydown', handleKeydown);
+  window.addEventListener('beforeunload', handleBeforeUnload);
 
-  chrome.storage.local.get(["language", "tutorialCompleted", "darkMode"], (localData) => {
-    let lang: Language = "en";
-    if (localData.language === "ja" || localData.language === "en") {
-      lang = localData.language;
-    } else {
-      lang = navigator.language.startsWith("ja") ? "ja" : "en";
-    }
-    setLanguage(lang);
+  const [sessionData, localData, syncData] = await Promise.all([
+    getSessionData(),
+    chrome.storage.local.get(["language", "tutorialCompleted", "darkMode"]),
+    chrome.storage.sync.get(null) as Promise<SyncData>,
+  ]);
 
-    if (typeof localData.darkMode === 'boolean') {
-      isDarkMode.value = localData.darkMode;
-    } else {
-      isDarkMode.value = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    }
-    if (isDarkMode.value) {
-      document.documentElement.classList.add('my-app-dark');
-    }
+  isGlobalPaused.value = Boolean(sessionData.globalDisabled);
 
-    window.addEventListener('keydown', handleKeydown);
-    window.addEventListener('beforeunload', handleBeforeUnload);
+  let lang: Language = "en";
+  if (localData.language === "ja" || localData.language === "en") {
+    lang = localData.language;
+  } else {
+    lang = navigator.language.startsWith("ja") ? "ja" : "en";
+  }
+  setLanguage(lang);
 
-    chrome.storage.sync.get(null, (data: SyncData) => {
-      environments.value = normalizeEnvironmentsForUI(data.environments);
+  if (typeof localData.darkMode === 'boolean') {
+    isDarkMode.value = localData.darkMode;
+  } else {
+    isDarkMode.value = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+  if (isDarkMode.value) {
+    document.documentElement.classList.add('my-app-dark');
+  }
 
-      void nextTick(() => {
-        initialSettingsStr = getUIStateString();
-        isDirty.value = false;
-        saveStatus.value = 'saved';
-        isInitialized.value = true;
+  environments.value = normalizeEnvironmentsForUI(syncData.environments);
 
-        if (!localData.tutorialCompleted) {
-          setTimeout(() => {
-            void startTour();
-          }, 500);
-        }
-      });
-    });
-  });
+  await nextTick();
+  initialSettingsStr = getUIStateString();
+  isDirty.value = false;
+  saveStatus.value = 'saved';
+  isInitialized.value = true;
+
+  if (!localData.tutorialCompleted) {
+    setTimeout(() => {
+      void startTour();
+    }, 500);
+  }
 });
 
 onUnmounted(() => {
@@ -691,11 +690,11 @@ const addEnvironment = (): void => {
 
 // --- 設定の保存処理・バリデーション ---
 /**
- * 設定値のバリデーションを実行し、Chromeストレージへ保存する関数
+ * 設定値のバリデーションを実行し、Chromeストレージへ保存する非同期関数
  * @param isManual - 手動トリガー（ショートカットキー、インポートなど）かどうか（デフォルト: false）
  * @returns バリデーションに通過して保存処理が行われたかどうかの真偽値
  */
-const executeSave = (isManual: boolean = false): boolean => {
+const executeSave = async (isManual: boolean = false): Promise<boolean> => {
   if (autoSaveTimer) {
     clearTimeout(autoSaveTimer);
     autoSaveTimer = null;
@@ -721,18 +720,18 @@ const executeSave = (isManual: boolean = false): boolean => {
   };
 
   isSelfSaving = true;
-  chrome.storage.sync.set(settings, () => {
-    saveStatus.value = 'saved';
-    initialSettingsStr = getUIStateString();
-    isDirty.value = false;
-    setTimeout(() => {
-      isSelfSaving = false;
-    }, 100);
-    
-    if (isManual) {
-      showToast(t("saved"), false);
-    }
-  });
+  await chrome.storage.sync.set(settings);
+
+  saveStatus.value = 'saved';
+  initialSettingsStr = getUIStateString();
+  isDirty.value = false;
+  setTimeout(() => {
+    isSelfSaving = false;
+  }, 100);
+
+  if (isManual) {
+    showToast(t("saved"), false);
+  }
 
   return true;
 };

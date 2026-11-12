@@ -1,4 +1,4 @@
-import { parseUrlPattern } from "../features/utils";
+import { parseUrlPattern } from "../features/url_parser";
 import {
   EnvironmentConfig,
   EnvironmentsValidationResult,

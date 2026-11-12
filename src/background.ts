@@ -277,12 +277,14 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 
 // アクティブなタブが切り替わったときにアイコンを更新する
 chrome.tabs.onActivated.addListener((activeInfo) => {
-  chrome.tabs.get(activeInfo.tabId, (tab) => {
-    if (chrome.runtime.lastError) {
-      return;
+  void (async () => {
+    try {
+      const tab = await chrome.tabs.get(activeInfo.tabId);
+      await updateActionBadge(activeInfo.tabId, tab?.url);
+    } catch {
+      // タブが既に閉じられている場合などのエラーは無視する
     }
-    void updateActionBadge(activeInfo.tabId, tab?.url);
-  });
+  })();
 });
 
 // 環境設定または一時OFF設定が変更されたときに全タブのアイコンをリアルタイム更新する
