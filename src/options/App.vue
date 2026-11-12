@@ -29,11 +29,12 @@ import AccordionPanel from 'primevue/accordionpanel';
 import AccordionHeader from 'primevue/accordionheader';
 import AccordionContent from 'primevue/accordioncontent';
 import Toast from 'primevue/toast';
-import TieredMenu from 'primevue/tieredmenu';
+import TieredMenu, { type TieredMenuRouterBindProps } from 'primevue/tieredmenu';
 import ConfirmDialog from 'primevue/confirmdialog';
+import type { MenuItem } from 'primevue/menuitem';
 
 /** ヘッダーメニュー項目の型定義 */
-interface HeaderMenuItem {
+interface HeaderMenuItem extends MenuItem {
   /** 表示ラベル */
   label: string;
   /** アイコンクラス名 */
@@ -49,9 +50,11 @@ interface HeaderMenuItem {
 /** TieredMenu の item スロットに渡されるプロパティ型 */
 interface HeaderMenuSlotProps {
   /** メニュー項目データ */
-  item: HeaderMenuItem;
+  item: MenuItem;
+  /** ラベルプロパティ */
+  label?: string | ((...args: unknown[]) => string);
   /** アクション要素へバインドする属性群 */
-  props: { action: Record<string, unknown> };
+  props: { action?: object };
   /** サブメニューを持つかどうか */
   hasSubmenu: boolean;
 }
@@ -582,7 +585,7 @@ const executeSave = async (isManual: boolean = false): Promise<boolean> => {
           />
           <TieredMenu ref="menu" id="overlay_menu" :model="menuItems" :popup="true">
             <template #item="{ item, props: itemProps, hasSubmenu }: HeaderMenuSlotProps">
-              <a v-bind="itemProps.action" class="flex items-center gap-2 w-full">
+              <a v-bind="itemProps.action as Record<string, unknown>" class="flex items-center gap-2 w-full">
                 <span v-if="item.icon" :class="item.icon" class="p-menuitem-icon" style="margin-right: 0.5rem;"></span>
                 <span class="p-menuitem-text">{{ item.label }}</span>
                 <span v-if="item.isLangCheck" class="pi pi-check" style="font-size: 0.75rem; color: var(--p-primary-color); margin-left: 0.25rem;"></span>
