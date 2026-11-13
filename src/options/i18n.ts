@@ -112,6 +112,11 @@ export const i18nConfig = {
     validationInvalidRegexPattern: 'Regex pattern "{pattern}" has a syntax error',
     validationDuplicateSameEnv: 'Pattern "{pattern}" is duplicated within the same environment',
     validationDuplicateOtherEnv: 'Pattern "{pattern}" duplicates a pattern in "{targetEnv}"',
+    tabUrlPatterns: "URL Patterns",
+    tabBadgeAndFeatures: "Badge & Display",
+    urlPatternsHint: "You can specify port numbers (:3000) and paths (/stg) in addition to hostnames.",
+    rulesCountSingular: "{count} rule",
+    rulesCountPlural: "{count} rules",
   },
   ja: {
     enableFavicon: "Favicon書き換えを有効にする",
@@ -221,6 +226,11 @@ export const i18nConfig = {
     validationInvalidRegexPattern: "正規表現パターン「{pattern}」に構文エラーがあります",
     validationDuplicateSameEnv: "パターン「{pattern}」が同じ環境内で重複しています",
     validationDuplicateOtherEnv: "パターン「{pattern}」が「{targetEnv}」と重複しています",
+    tabUrlPatterns: "URLパターン",
+    tabBadgeAndFeatures: "デザイン・表示設定",
+    urlPatternsHint: "ホスト名に加え、ポート番号（:3000）やパス（/stg）も指定可能です。",
+    rulesCountSingular: "{count} 件のルール",
+    rulesCountPlural: "{count} 件のルール",
   },
 };
 

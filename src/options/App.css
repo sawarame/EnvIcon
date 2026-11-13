@@ -39,6 +39,11 @@
   --footer-border: rgba(255, 255, 255, 0.1);
 }
 
+html {
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+}
+
 body {
   background-color: var(--app-bg);
   color: var(--text-primary);
@@ -56,9 +61,18 @@ body {
 
 /* 個別のカードやコンテンツを内包するコンテナ制限 */
 .container {
-  max-width: 1280px;
+  width: 100%;
+  max-width: 880px;
   margin: 0 auto;
   padding: 0 1.5rem;
+  box-sizing: border-box;
+}
+
+/* 環境カード一覧リスト */
+.env-list {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 /* メインコンテンツ（フッターの高さ分だけ下の余白を取る） */
@@ -301,3 +315,33 @@ body:has(.introjs-overlay) .hostname-input-field:focus {
   color: #fcd34d;
   border-color: #78350f;
 }
+
+/* 
+  オプション画面新2カラムレイアウトおよびヘッダー・プレビュー用ベーススタイル
+*/
+.env-header-mini-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  line-height: 1.2;
+}
+
+.env-header-rules-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background-color: var(--item-bg);
+  border: 1px solid var(--border-color);
+  line-height: 1.2;
+}
+
