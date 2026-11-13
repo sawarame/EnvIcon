@@ -180,8 +180,21 @@ const onDragEnd = (): void => {
 </script>
 
 <template>
-  <div class="hostname-list-container">
-    <div class="hostname-rows-group">
+  <div class="hostname-list-wrapper">
+    <!-- 見出しと書き方ヒント -->
+    <div class="hostname-section-header">
+      <div class="hostname-header-title">
+        <i class="pi pi-link"></i>
+        <span>{{ t('hostnamePatterns') }}</span>
+      </div>
+      <div class="hostname-header-hint">
+        <i class="pi pi-info-circle"></i>
+        <span>{{ t('urlPatternsHint') }}</span>
+      </div>
+    </div>
+
+    <div class="hostname-list-container">
+      <div class="hostname-rows-group">
       <div
         v-for="(pattern, index) in modelValue"
         :key="index"
@@ -264,9 +277,58 @@ const onDragEnd = (): void => {
       />
     </div>
   </div>
+  </div>
 </template>
 
 <style scoped>
+.hostname-list-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.hostname-section-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  margin-bottom: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.hostname-header-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.hostname-header-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  background-color: var(--item-bg);
+  border: 1px solid var(--border-color);
+  padding: 0.625rem 0.875rem;
+  border-radius: 8px;
+  line-height: 1.4;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.hostname-header-hint i {
+  color: var(--p-primary-color);
+  font-size: 0.875rem;
+  flex-shrink: 0;
+}
+
 .hostname-list-container {
   display: flex;
   flex-direction: column;
@@ -274,11 +336,14 @@ const onDragEnd = (): void => {
   border-radius: 12px;
   overflow: hidden;
   background-color: var(--card-bg);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .hostname-rows-group {
   display: flex;
   flex-direction: column;
+  width: 100%;
 }
 
 /* 入力行を包むラッパー要素 */
@@ -287,6 +352,8 @@ const onDragEnd = (): void => {
   border-bottom: 1px solid var(--border-color);
   margin: 0 !important;
   padding: 0 !important;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .hostname-row-wrapper:last-child {
@@ -309,6 +376,8 @@ const onDragEnd = (): void => {
   align-items: stretch;
   height: 2.75rem;
   background: var(--card-bg);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* 各要素間の境界線を統一する共通スタイル */
@@ -322,6 +391,7 @@ const onDragEnd = (): void => {
   border-radius: 0 !important;
   margin: 0 !important;
   box-shadow: none !important;
+  box-sizing: border-box;
 }
 
 /* 先頭要素の左境界線を非表示にして外枠と密着させる */
@@ -337,6 +407,7 @@ const onDragEnd = (): void => {
   align-items: center;
   justify-content: center;
   cursor: grab;
+  flex-shrink: 0;
 }
 .drag-handle-box:active { cursor: grabbing; }
 
@@ -346,6 +417,7 @@ const onDragEnd = (): void => {
   display: flex;
   align-items: center;
   padding: 0 0.75rem;
+  flex-shrink: 0;
 }
 
 /* 3. 正規表現チェックボックスエリア */
@@ -355,11 +427,13 @@ const onDragEnd = (): void => {
   align-items: center;
   gap: 0.5rem;
   padding: 0 1rem;
+  flex-shrink: 0;
 }
 
 /* 4. テキスト入力フィールド */
 .hostname-input-field {
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
   padding: 0 1rem !important;
   height: 100% !important;
   font-size: 0.875rem;
