@@ -3,6 +3,7 @@ import { ref, watch, onMounted, onUnmounted, nextTick, computed } from 'vue';
 import {
   SyncData,
   EnvironmentConfig,
+  EnvSectionTab,
   EnvValidationErrorState,
   ValidationErrorItem,
 } from '../types';
@@ -79,10 +80,42 @@ const showToast = (message: string, isError: boolean = false): void => {
 
 const menu = ref<{ toggle: (event: Event) => void } | null>(null);
 const environments = ref<EnvironmentConfig[]>([]);
+/** 環境IDごとの選択タブ状態マップ（未設定時は 'urls' 扱い） */
+const envTabs = ref<Record<string, EnvSectionTab>>({});
+
+/**
+ * 指定された環境カードの現在選択中のタブを取得する関数
+ * @param envId - 対象の環境識別子
+ * @returns 選択中のタブ識別子（未設定時は 'urls'）
+ */
+const getEnvTab = (envId: string): EnvSectionTab => {
+  return envTabs.value[envId] ?? 'urls';
+};
+
+/**
+ * 指定された環境カードのタブを切り替え、DOM更新と描画レイアウト反映まで待機する非同期関数
+ * @param envId - 対象の環境識別子
+ * @param tab - 切り替え先のタブ識別子
+ * @returns 描画レイアウト確定後に解決される Promise
+ */
+const setEnvTab = async (envId: string, tab: EnvSectionTab): Promise<void> => {
+  if (getEnvTab(envId) === tab) {
+    return;
+  }
+  envTabs.value[envId] = tab;
+  await nextTick();
+  // v-show 解除後の要素座標（getBoundingClientRect）が確定するまで1アニメーションフレーム待機する
+  await new Promise<void>((resolve) => {
+    requestAnimationFrame(() => resolve());
+  });
+};
 
 // Composables の初期化
 const { isDarkMode, initTheme, toggleDarkMode } = useTheme();
-const { startTour, exitTour } = useTour();
+const { startTour, exitTour } = useTour({
+  getEnvTab,
+  setEnvTab,
+});
 const { fileInput, exportSettings, handleImportFile, triggerFileInput } =
   useSettingsTransfer(showToast);
 
@@ -666,6 +699,7 @@ const executeSave = async (isManual: boolean = false): Promise<boolean> => {
           v-for="(env, index) in environments" 
           :key="env.id"
           v-model:envConfig="environments[index]"
+          v-model:activeTab="envTabs[env.id]"
           :matchedPatternIndex="checkerResult?.matchedEnvIndex === index ? checkerResult.matchedPatternIndex : null"
           :validationError="validationErrors[env.id]"
           @delete="deleteEnvironment"
