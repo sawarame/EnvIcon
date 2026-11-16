@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import {
   EnvironmentConfig,
+  EnvSectionTab,
   EnvValidationErrorState,
   HostnamePattern,
   PageBadgePosition,
@@ -33,6 +34,8 @@ interface FocusableInputRef {
 const props = defineProps<{
   /** 対象環境の設定データ */
   envConfig: EnvironmentConfig;
+  /** 外部から制御される現在選択中タブ（未指定時はコンポーネント内部状態を既定 'urls' として使用） */
+  activeTab?: EnvSectionTab;
   /** URLチェッカーでこの環境が採用された場合の該当パターン行インデックス（非該当時は null） */
   matchedPatternIndex?: number | null;
   /** この環境のバリデーションエラー状態 */
@@ -41,14 +44,37 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'update:envConfig', value: EnvironmentConfig): void;
+  (e: 'update:activeTab', value: EnvSectionTab): void;
   (e: 'delete', id: string): void;
   (e: 'undo'): void;
 }>();
 
 const nameInput = ref<FocusableInputRef | null>(null);
 
-/** 現在選択されているタブ識別子 ('urls' | 'appearance') */
-const activeTab = ref<string>('urls');
+/** 親から activeTab が渡されない単独利用時向けのローカルタブ状態 */
+const localActiveTab = ref<EnvSectionTab>(props.activeTab ?? 'urls');
+
+/**
+ * 現在のアクティブタブを取得・更新する算出プロパティ
+ */
+const activeTab = computed<EnvSectionTab>({
+  get: () => props.activeTab ?? localActiveTab.value,
+  set: (value: EnvSectionTab) => {
+    localActiveTab.value = value;
+    emit('update:activeTab', value);
+  },
+});
+
+/**
+ * PrimeVue Tabs のタブ選択変更を型安全に反映するハンドラ
+ * @param value - Tabs コンポーネントから通知された選択値
+ * @returns なし
+ */
+const onTabChange = (value: string | number): void => {
+  if (value === 'urls' || value === 'appearance') {
+    activeTab.value = value;
+  }
+};
 
 // URLチェッカーでパターンが一致した場合は自動的にURLパターンタブへ切り替え
 watch(
@@ -286,7 +312,7 @@ const rulesCountText = computed<string>(() => {
     <template #content>
       <div class="content-wrapper px-4 pb-4">
         <!-- タブ切り替えコンポーネント -->
-        <Tabs v-model:value="activeTab" class="env-tabs">
+        <Tabs :value="activeTab" class="env-tabs" @update:value="onTabChange">
           <TabList class="env-tab-list">
             <!-- タブ 1: URLパターン -->
             <Tab value="urls">
@@ -323,7 +349,7 @@ const rulesCountText = computed<string>(() => {
               <div class="appearance-tab-wrapper pt-3">
                 <div class="appearance-grid">
                   <!-- バッジ基本外観設定 -->
-                  <div class="settings-group-box">
+                  <div class="settings-group-box badge-settings-box">
                     <div class="group-header">
                       <i class="pi pi-palette"></i>
                       <span>{{ t('badgeSettings') }}</span>

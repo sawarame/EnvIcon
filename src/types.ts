@@ -72,6 +72,11 @@ export interface MatchSpecificity {
 export type PageBadgePosition = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 
 /**
+ * オプション設定画面の環境カード内における表示タブ種別を表す型
+ */
+export type EnvSectionTab = 'urls' | 'appearance';
+
+/**
  * 各環境の設定情報を表すインターフェース
  */
 export interface EnvironmentConfig {
