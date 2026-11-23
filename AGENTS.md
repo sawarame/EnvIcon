@@ -55,7 +55,7 @@ EnvIcon は、開発・ステージング・本番などの各環境を視覚的
 - Options 画面および Popup 画面のすべての Vue コンポーネントは Vue 3 Composition API（`<script setup lang="ts">`）で記述し（MUST）、Options API を新規に使用してはなりません（MUST NOT）。
 - UI コンポーネントは PrimeVue v4（`@primeuix/themes` の Aura プリセット）と PrimeIcons を標準採用し、ライトモードとダークモード（`.my-app-dark`）の双方で視認性とコントラストを確保します（MUST）。
 - Chrome API 呼び出しや非同期処理は `async/await` 構文を基本とし、イベントリスナー等で意図的に待機しない Promise 呼び出しには `void` 演算子を明示します（MUST）。
-- ユーザー向け表示テキストは `src/options/i18n.ts` および `package/_locales/{en,ja}/messages.json` で英語（`en`）・日本語（`ja`）の双方を定義し、コンポーネント内に表示文言をハードコードしてはなりません（MUST NOT）。
+- ユーザー向け表示テキストは `src/options/i18n.ts` および `package/_locales/{en,ja,zh_CN,zh_TW,ko}/messages.json` で英語（`en`）・日本語（`ja`）・中国語［簡体字（`zh-CN` / `zh_CN`）・繁体字（`zh-TW` / `zh_TW`）］・韓国語（`ko`）の全5言語を定義し、コンポーネント内に表示文言をハードコードしてはなりません（MUST NOT）。
 
 ### V. 日本語ドキュメンテーションと仕様同期
 
@@ -98,7 +98,7 @@ EnvIcon は、開発・ステージング・本番などの各環境を視覚的
 - `package/`: 拡張機能の配布パッケージ用ディレクトリ（`manifest.json`、`options.html`、`popup.html`、`_locales/` の静的定義ファイルのみ直接管理対象）
   - `manifest.json`: Chrome 拡張機能マニフェスト（Manifest V3）
   - `options.html` / `popup.html`: 各画面のエントリー HTML
-  - `_locales/`: 拡張機能メタデータの多言語リソース（`en`, `ja`）
+  - `_locales/`: 拡張機能メタデータの多言語リソース（`en`, `ja`, `zh_CN`, `zh_TW`, `ko`）
   - `icons/`: 生成された PNG アイコンアセット（自動生成）
   - `js/`: Webpack によってビルドされた JavaScript バンドル（自動生成）
 - `scripts/`: ビルド補助スクリプト（`generate-icons.js`）
@@ -110,7 +110,7 @@ EnvIcon は、開発・ステージング・本番などの各環境を視覚的
 
 - **ビルド検証（必須）**: コードや設定を変更した後は、作業完了前に必ず `npm run build` を実行し、TypeScript の厳格型チェック、Webpack 本番バンドル、および `package.zip` の生成がエラーなく完了することを確認します（MUST）。
 - **アイコン生成**: `src/icon.svg` または `src/icon_dev.svg` を変更した場合は、`npm run generate-icons`（開発用は `npm run generate-icons:dev`）を実行して `package/icons/` を更新します。
-- **動作確認・回帰検証**: UI 操作およびブラウザ API 連携については、Chrome の拡張機能デベロッパーモードで `package/` を読み込み、該当コンテキスト（Background / Content / Options / Popup）、テーマ（ライト / ダーク）、言語（英語 / 日本語）、および一時OFFからの復元動作を確認します（MUST）。
+- **動作確認・回帰検証**: UI 操作およびブラウザ API 連携については、Chrome の拡張機能デベロッパーモードで `package/` を読み込み、該当コンテキスト（Background / Content / Options / Popup）、テーマ（ライト / ダーク）、言語（英語 / 日本語 / 中国語［簡体字・繁体字］ / 韓国語、およびブラウザ言語自動判定）、および一時OFFからの復元動作を確認します（MUST）。
 - **コミットおよびリリース管理**:
   - コミットメッセージは Conventional Commits 形式（`feat:`, `fix:`, `chore:`, `style:`, `docs:`, `refactor:` 等）に従います。
   - バージョン更新（リリース）を行う際は、`package.json` と `package/manifest.json` の `version` フィールドを必ず同一のバージョン番号に同期させます（MUST）。

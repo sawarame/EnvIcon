@@ -15,7 +15,7 @@
 | ストレージ領域 | 主なキー | 用途・ライフサイクル | 書き込み元 | 購読・反応先 |
 | :--- | :--- | :--- | :--- | :--- |
 | `chrome.storage.sync` | `environments` | 環境設定リスト（`EnvironmentConfig[]`）の永続化・ブラウザ間同期。デフォルト環境（`prod` / `stg` / `dev`）は `isDeletable: false` として削除から保護する。 | Options UI（500ms デバウンス自動保存 / インポート）、Popup UI（ワンクリック登録・解除） | Content Script、Service Worker、Options UI、Popup UI |
-| `chrome.storage.local` | `language`, `darkMode`, `tutorialCompleted` | 端末・ブラウザ固有の UI 設定（表示言語、テーマ、オンボーディング完了状態）の保存。 | Options UI | Options UI、Popup UI |
+| `chrome.storage.local` | `language`, `darkMode`, `tutorialCompleted` | 端末・ブラウザ固有の UI 設定（表示言語設定 `"auto" \| "en" \| "ja" \| "zh-CN" \| "zh-TW" \| "ko"`、テーマ、オンボーディング完了状態）の保存。 | Options UI | Options UI、Popup UI |
 | `chrome.storage.session` | `globalDisabled`, `disabledHostnames` | 全体一時OFFおよびサイト単位（`ホスト名[:ポート番号]`）の一時OFF状態の保存。`TRUSTED_AND_UNTRUSTED_CONTEXTS` を設定し、ブラウザ再起動時に自動クリア（ON状態へ自動復帰）する。 | Popup UI（全体ON/OFF、サイト別一時OFF）、Options UI（全体一時OFF解除ボタン） | Content Script、Service Worker、Options UI、Popup UI |
 
 すべてのストレージ変更は `chrome.storage.onChanged` で監視し、ページ再読み込みを伴わずに Favicon・ページ内バッジ・ツールバーアイコンへ即座に反映します。
@@ -27,6 +27,16 @@
 | Content Script → Service Worker | `GET_TAB_INFO` | Req: `{ type: "GET_TAB_INFO" }`<br>Res: `{ favIconUrl?: string; url?: string }` | DOM 内に `<link rel="icon">` が存在しないページで、ブラウザ検出済みの Favicon URL を補完する。 |
 | Content Script → Service Worker | `FETCH_IMAGE` | Req: `{ type: "FETCH_IMAGE", url: string }`<br>Res: `{ dataUrl?: string; error?: string }` | CORS 制限を回避して元サイトの Favicon 画像を Data URL として取得する。 |
 | Service Worker → Content Script | `URL_CHANGED` | Payload: `{ type: "URL_CHANGED", url: string }`（単方向通知） | `chrome.tabs.onUpdated` で `changeInfo.url` の変化を検知した際に通知し、SPA の画面内遷移へ即座に追従する（未注入・破棄済みタブでの送信エラーは安全に無視する）。 |
+
+### 1.3 表示言語の自動判定と多言語切り替え仕様
+- **対応言語（5言語）**: 英語（`en`）・日本語（`ja`）・中国語［簡体字（`zh-CN`）・繁体字（`zh-TW`）］・韓国語（`ko`）に対応する。Chrome 拡張機能メタデータは `package/_locales/{en,ja,zh_CN,zh_TW,ko}/messages.json` で定義し、`manifest.json` の `default_locale` は `en` を維持する。
+- **デフォルト動作と自動判定ルール**: `chrome.storage.local` の `language` が未設定・`"auto"`・不正値の場合は、`chrome.i18n?.getUILanguage?.() || navigator.language || "en"` を小文字化および `_` → `-` 正規化した値から以下で解決する。
+  - `ja` / `ja-*` → `ja`
+  - `ko` / `ko-*` → `ko`
+  - `zh-tw` / `zh-hk` / `zh-mo` / `zh-hant`（または `zh-*` で `-hant` を含むタグ） → `zh-TW`
+  - 上記以外の `zh` / `zh-*` → `zh-CN`
+  - 上記以外のすべての言語 → `en`（フォールバック）
+- **手動選択・即時同期・HTML 言語属性**: Options UI ヘッダーの「言語切り替え」サブメニューには先頭に「ブラウザの言語（自動）」、続けて5言語（`English` / `日本語` / `简体中文` / `繁體中文` / `한국어`）を配置する。選択値は `chrome.storage.local.language` に保存し、`chrome.storage.onChanged` により Options UI と Popup UI 間で即時同期する。適用時には `document.documentElement.lang` を解決済み言語コードへ更新し、各言語（特に CJK）の適切なフォント描画を保証する。
 
 ---
 
@@ -129,7 +139,7 @@
    - **パターン重複 (`duplicate_pattern`)**: 構文・形式が有効な行について、正規化済み判定キー（通常: `pattern:<normalized>`、正規表現: `regex:<rawValue>`）が先行行と重複した場合。後発の重複行をエラー対象（赤枠強調と完全一致）とし、同一環境内重複（`isSameEnvDuplicate: true`）か異環境間重複（重複元の環境ID・環境名を保持）かを区別して記録します。
 
 - **一貫性保証**: 画面上の赤枠エラー表示（`fieldErrorsByEnv`）とホバー表示される不備理由リスト（`errorItems`）は同一関数から算出され、常に 100% 一致します。
-- **カスタム環境名が空欄の場合の扱い**: 不備理由のグループ見出しや重複相手名に空文字を出さず、言語に応じた代替ラベル（日本語: `（名称未設定の環境）` / 英語: `(Unnamed Environment)`）を使用します。
+- **カスタム環境名が空欄の場合の扱い**: 不備理由のグループ見出しや重複相手名に空文字を出さず、各対応言語に応じた代替ラベル（例: 日本語 `（名称未設定の環境）` / 英語 `(Unnamed Environment)` / 簡体字 `（未命名环境）` / 繁体字 `（未命名環境）` / 韓国語 `(이름 없는 환경)`）を使用します。
 - **状態復帰**: 入力修正・パターン行削除・環境削除・「編集内容を取り消す」操作により全不備が解消された場合、直前の保存済み状態と同一に戻ったケースを含め保存エラー表示を確実に解除します。
 
 ### 3.2 不備理由ポップオーバーの表示・操作仕様
@@ -142,7 +152,7 @@
   - ステータスピルと吹き出しの間の透明ブリッジと `120ms` のクローズ猶予により、吹き出し上へカーソルを移動しても表示を維持し、双方からカーソルが離れた時点で閉じます。
   - 幅 `min(440px, calc(100vw - 3rem))`（最小幅 `280px`）、本文最大高さ `min(300px, calc(100vh - 140px))`＋縦スクロール（`overflow-y: auto`）により、10件以上の不備があっても全件閲覧できます。
   - 80文字を超える長文パターンは先頭 80文字＋`...` に省略し、CSS の `overflow-wrap: anywhere` と併用して横幅崩れを防ぎます。
-- **多言語・テーマ連動**: 不備理由は言語非依存の `ValidationErrorItem` として保持し、現在の選択言語（`ja` / `en`）へ動的翻訳して表示します。ライトモード・ダークモードの配色トークンに追従します。
+- **多言語・テーマ連動**: 不備理由は言語非依存の `ValidationErrorItem` として保持し、現在の選択言語（`en` / `ja` / `zh-CN` / `zh-TW` / `ko`）へ動的翻訳して表示します。ライトモード・ダークモードの配色トークンに追従します。
 
 ---
 

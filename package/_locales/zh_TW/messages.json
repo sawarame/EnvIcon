@@ -1,0 +1,10 @@
+{
+  "appName": {
+    "message": "EnvIcon - 環境識別與網站圖示徽章工具",
+    "description": "擴充功能的名稱。"
+  },
+  "appDesc": {
+    "message": "透過可自訂的網站圖示（Favicon）疊加層與頁面徽章，輕鬆區分開發、預發佈與正式環境，防止誤操作。",
+    "description": "擴充功能的說明。"
+  }
+}

@@ -3,7 +3,7 @@ import { computed, onMounted, onUnmounted, ref } from "vue";
 import Button from "primevue/button";
 import ToggleSwitch from "primevue/toggleswitch";
 import { EnvironmentConfig, SyncData, TargetLocation } from "../types";
-import { Language, setLanguage, t } from "../options/i18n";
+import { applyLanguageSetting, t } from "../options/i18n";
 import { normalizeUrlPattern, resolveEnvDisplayName } from "../options/utils";
 import {
   createDefaultEnvironments,
@@ -211,6 +211,8 @@ const handleStorageChanged = async (
     const sessionData = await getSessionData();
     globalEnabled.value = !sessionData.globalDisabled;
     disabledHostnames.value = sessionData.disabledHostnames ?? [];
+  } else if (areaName === "local" && changes.language) {
+    applyLanguageSetting(changes.language.newValue);
   }
 };
 
@@ -235,14 +237,8 @@ onMounted(async () => {
     getSessionData(),
   ]);
 
-  // 表示言語の適用
-  const lang: Language =
-    localData.language === "ja" || localData.language === "en"
-      ? localData.language
-      : navigator.language.startsWith("ja")
-        ? "ja"
-        : "en";
-  setLanguage(lang);
+  // 表示言語の適用（未設定・auto 時はブラウザ言語を自動適用）
+  applyLanguageSetting(localData.language);
 
   // ダークモード設定の適用
   const darkMode =
