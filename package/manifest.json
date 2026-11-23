@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_appName__",
-  "version": "1.5.2",
+  "version": "1.6.0",
   "description": "__MSG_appDesc__",
   "default_locale": "en",
   "action": {
@@ -16,16 +16,6 @@
   ],
   "host_permissions": [
     "<all_urls>"
-  ],
-  "web_accessible_resources": [
-    {
-      "resources": [
-        "icons/*.png"
-      ],
-      "matches": [
-        "<all_urls>"
-      ]
-    }
   ],
   "content_scripts": [
     {
