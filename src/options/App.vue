@@ -7,7 +7,13 @@ import {
   EnvValidationErrorState,
   ValidationErrorItem,
 } from '../types';
-import { currentLanguage, setLanguage, t, Language } from './i18n';
+import {
+  applyLanguageSetting,
+  currentLanguageSetting,
+  LANGUAGE_OPTIONS,
+  LanguageSetting,
+  t,
+} from './i18n';
 import { resolveEnvDisplayName, validateEnvironments } from './utils';
 import {
   createDefaultEnvironments,
@@ -174,15 +180,15 @@ const menuItems = computed<HeaderMenuItem[]>(() => [
     icon: 'pi pi-globe',
     items: [
       {
-        label: 'English',
-        isLangCheck: currentLanguage.value === 'en',
-        command: () => onLanguageChange('en')
+        label: t('languageAuto'),
+        isLangCheck: currentLanguageSetting.value === 'auto',
+        command: () => onLanguageChange('auto')
       },
-      {
-        label: '日本語',
-        isLangCheck: currentLanguage.value === 'ja',
-        command: () => onLanguageChange('ja')
-      }
+      ...LANGUAGE_OPTIONS.map((option) => ({
+        label: option.nativeLabel,
+        isLangCheck: currentLanguageSetting.value === option.code,
+        command: () => onLanguageChange(option.code)
+      }))
     ]
   },
   {
@@ -379,6 +385,11 @@ const handleExternalStorageChange = async (
   changes: { [key: string]: chrome.storage.StorageChange },
   areaName: string
 ): Promise<void> => {
+  if (areaName === "local" && changes.language) {
+    applyLanguageSetting(changes.language.newValue);
+    return;
+  }
+
   if (areaName === "session" && changes.globalDisabled) {
     const sessionData = await getSessionData();
     isGlobalPaused.value = Boolean(sessionData.globalDisabled);
@@ -428,13 +439,7 @@ onMounted(async () => {
 
   isGlobalPaused.value = Boolean(sessionData.globalDisabled);
 
-  let lang: Language = "en";
-  if (localData.language === "ja" || localData.language === "en") {
-    lang = localData.language;
-  } else {
-    lang = navigator.language.startsWith("ja") ? "ja" : "en";
-  }
-  setLanguage(lang);
+  applyLanguageSetting(localData.language);
 
   initTheme(localData.darkMode);
 
@@ -464,12 +469,12 @@ onUnmounted(() => {
 });
 
 /**
- * 言語が変更された際のハンドラ関数
- * @param val - 変更後の言語種別
+ * 言語設定が変更された際のハンドラ関数
+ * @param val - 変更後の言語設定値（"auto" または各言語コード）
  * @returns なし
  */
-const onLanguageChange = (val: Language): void => {
-  setLanguage(val);
+const onLanguageChange = (val: LanguageSetting): void => {
+  applyLanguageSetting(val);
   void chrome.storage.local.set({ language: val });
 };
 

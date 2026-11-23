@@ -1,0 +1,10 @@
+{
+  "appName": {
+    "message": "EnvIcon - 环境识别与网站图标徽章工具",
+    "description": "扩展程序的名称。"
+  },
+  "appDesc": {
+    "message": "通过可自定义的网站图标（Favicon）叠加层与页面徽章，轻松区分开发、预发布与生产环境，防止误操作。",
+    "description": "扩展程序的说明。"
+  }
+}

@@ -23,7 +23,7 @@ EnvIcon is a Chrome extension designed for developers and QA engineers to easily
 - **Advanced Features**:
   - **Dynamic Detection**: Automatically updates overlays even when a site changes its favicon dynamically.
   - **Priority Management**: Reorder hostnames within an environment using drag-and-drop.
-- **Multilingual Support**: Available in both **English** and **Japanese**.
+- **Multilingual Support**: Available in **English**, **Japanese**, **Simplified Chinese**, **Traditional Chinese**, and **Korean** (defaults to your browser language and can be switched manually).
 
 ## Configuration
 
